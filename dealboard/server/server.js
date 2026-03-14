@@ -23,6 +23,8 @@
 
 'use strict';
 
+require('dotenv').config();
+
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const cors = require('cors');
@@ -37,6 +39,11 @@ const memoryRouter = require('./routes/api-memory');
 const { analyzeTranscript } = require('./agents/listener-agent');
 const { processResearchRequest } = require('./workspace-researcher/index');
 const { fuseWorkerResults } = require('./agents/analyser-agent');
+const insightsRouter = require('./routes/api-insights');
+
+// ── Async Brain ──────────────────────────────────────────────
+const dataStore = require('./async/data-store');
+const scanner = require('./async/scanner');
 
 // ── App Setup ───────────────────────────────────────────────
 const app = express();
@@ -48,6 +55,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/health', healthRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/memory', memoryRouter);
+app.use('/api', insightsRouter);
 
 // 404 fallback for unmatched REST routes
 app.use((req, res) => {
@@ -373,7 +381,7 @@ function log(level, message, data = {}) {
 
 // ── Start Server ──────────────────────────────────────────────
 
-server.listen(config.PORT, () => {
+server.listen(config.PORT, async () => {
   log('info', `DealBoard server running on port ${config.PORT}`, {
     mode: config.MODE,
     useMock: config.USE_MOCK,
@@ -381,6 +389,21 @@ server.listen(config.PORT, () => {
   });
   log('info', `REST API: http://localhost:${config.PORT}/api/health`);
   log('info', `WebSocket: ws://localhost:${config.PORT}/ws`);
+
+  // Initialize data store and start async scanner if enabled
+  try {
+    await dataStore.initialize();
+    log('info', 'Data store initialized');
+
+    if (config.ENABLE_ASYNC_SCANNER) {
+      scanner.start(broadcastToAll);
+      log('info', 'Async scanner started', { intervalMs: config.ASYNC_SCAN_INTERVAL_MS });
+    } else {
+      log('info', 'Async scanner disabled (ENABLE_ASYNC_SCANNER=false)');
+    }
+  } catch (err) {
+    log('error', 'Failed to initialize data store or scanner', { error: err.message });
+  }
 });
 
 server.on('error', (err) => {
