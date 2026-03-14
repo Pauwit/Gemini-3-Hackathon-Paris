@@ -28,8 +28,9 @@
 
 const config = require('../config');
 
-// TODO: Import gemini-client when implemented
-// const { generateContent } = require('../tools/gemini-client');
+const fs = require('fs');
+const path = require('path');
+const { generateContent } = require('../tools/gemini-client');
 
 /**
  * fuseWorkerResults
@@ -49,14 +50,47 @@ const config = require('../config');
  * );
  */
 async function fuseWorkerResults(workerResults, transcript, context) {
-  // TODO: Load analyser-prompt.txt
-  // TODO: Serialize workerResults into prompt context
-  // TODO: Call Gemini Flash model
-  // TODO: Parse JSON Card array response
-  // TODO: Validate card schema, assign cardId + timestamps
+  const promptPath = path.join(__dirname, '..', config.PROMPTS_DIR, 'analyser-prompt.txt');
+  const systemPrompt = fs.readFileSync(promptPath, 'utf8');
 
-  console.log('[analyser-agent] fuseWorkerResults called — TODO: implement');
-  return [];
+  const contextualPrompt = `
+    ${systemPrompt}
+    
+    --- DATA ---
+    Meeting Context: ${JSON.stringify(context)}
+    Current Transcript Segment: "${transcript}"
+    Worker Results (Workspace Researcher context): ${JSON.stringify(workerResults)}
+    
+    Remember: Your output MUST be ONLY valid JSON matching the Card schema and nothing else.
+    Ensure "priority" is mapped correctly to the "label" type according to UI standards.
+  `;
+
+  try {
+    const responseText = await generateContent(
+      config.ANALYSER_MODEL, 
+      contextualPrompt, 
+      { responseMimeType: 'application/json', temperature: 0.2 }
+    );
+    
+    // Attempt to parse JSON strictly - the prompt expects a single object, but we wrap it in array
+    let parsed = JSON.parse(responseText);
+    if (!Array.isArray(parsed)) {
+      parsed = [parsed];
+    }
+    
+    // Validate and assign necessary IDs
+    const cards = parsed.map(c => ({
+      ...c,
+      cardId: `card_${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: new Date().toISOString()
+    }));
+    
+    console.log(`[analyser-agent] Generated ${cards.length} cards.`);
+    return cards;
+  } catch (error) {
+    console.error(`[analyser-agent] Failed to fuse worker results:`, error);
+    return [];
+  }
 }
 
 module.exports = { fuseWorkerResults };

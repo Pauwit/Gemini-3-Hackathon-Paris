@@ -1,111 +1,68 @@
-/**
- * ============================================================
- * scripts/test-pipeline.js — Full Pipeline End-to-End Test
- * ============================================================
- *
- * PURPOSE:
- * Tests the complete DealBoard pipeline: transcript segment →
- * listener-agent → worker-orchestrator → analyser-agent → card.
- * Runs immediately even if agents are stubs.
- *
- * USAGE:
- *   node scripts/test-pipeline.js
- *   npm test (from server/ directory)
- * ============================================================
- */
-
 'use strict';
 
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Setup environment variables from root dir
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+
 const { analyzeTranscript } = require('../agents/listener-agent');
-const { runWorkers } = require('../workers/worker-orchestrator');
+const { processResearchRequest } = require('../workspace-researcher/index');
 const { fuseWorkerResults } = require('../agents/analyser-agent');
 
-// Load mock data
-let mockTranscript;
-try {
-  mockTranscript = require('../mock-data/mock-transcript.json');
-} catch (e) {
-  mockTranscript = [];
-}
-
-const meetingContext = {
-  meetingId: 'pipeline-test-001',
-  title: 'AcmeCorp Pipeline Test',
-  participants: ['Sarah Chen', 'Marcus Johnson', 'Priya Patel'],
-  context: 'Sales call for enterprise monitoring solution'
+const mockMeetingContext = {
+  meetingId: 'mtg_test_123',
+  platform: 'Google Meet',
+  participants: ['Alice Smith', 'Bob Jones'],
+  title: 'Project Phoenix Sync',
+  context: 'Quarterly review and planning. Discussing Datadog alternatives and roadmap.'
 };
 
-async function runPipeline(segmentIndex) {
-  const segment = mockTranscript[segmentIndex];
-  if (!segment) return null;
+const testTranscripts = [
+  "Hi everyone, thanks for joining.", // Should not trigger
+  "We are currently paying $50k/mo for Datadog and it's too expensive.", // Should trigger
+];
 
-  console.log(`\n[Pipeline] Processing segment ${segmentIndex + 1}/${mockTranscript.length}`);
-  console.log(`  Speaker: ${segment.speaker}`);
-  console.log(`  Text: "${segment.text.substring(0, 80)}..."`);
+async function runPipelineTests() {
+  console.log("==================================================");
+  console.log("   Meeting Processor Pipeline Test (End-to-End)   ");
+  console.log("==================================================\n");
 
-  // Stage 1: Listener Agent
-  console.log('\n  Stage 1: Listener Agent...');
-  const listenerResult = await analyzeTranscript(segment.text, {
-    ...meetingContext,
-    recentHistory: mockTranscript.slice(Math.max(0, segmentIndex - 2), segmentIndex).map(s => s.text)
+  for (const transcript of testTranscripts) {
+    console.log(`\n\n>>> TESTING TRANSCRIPT: "${transcript}"\n`);
+    
+    // 1. Listener Agent
+    console.log("--- 1. LISTENER AGENT ---");
+    const decision = await analyzeTranscript(transcript, mockMeetingContext);
+    console.log(JSON.stringify(decision, null, 2));
+
+    if (decision.needs_context && decision.queries.length > 0) {
+      // 2. Workspace Researcher
+      console.log("\n--- 2. WORKSPACE RESEARCHER ---");
+      const primaryQuery = decision.queries[0].query;
+      console.log(`Querying Workspace: "${primaryQuery}"`);
+      const workerResults = await processResearchRequest(primaryQuery);
+      console.log(`Got workspace results: (Length: ${workerResults.length} chars)`);
+
+      // 3. Analyser Agent
+      console.log("\n--- 3. ANALYSER AGENT ---");
+      const cards = await fuseWorkerResults(workerResults, transcript, mockMeetingContext);
+      console.log(`Generated ${cards.length} cards:`);
+      cards.forEach(card => {
+        console.log(`\n[${card.label} / ${card.priority}] ${card.title}`);
+        console.log(`Summary: ${card.summary}`);
+        console.log(`Details:`, card.details);
+      });
+      
+    } else {
+      console.log("\n➔ Pipeline stopped: No context needed for this segment.");
+    }
+  }
+}
+
+if (require.main === module) {
+  runPipelineTests().then(() => {
+    console.log("\nTests terminés.");
+    process.exit(0);
   });
-  console.log(`  → needs_context: ${listenerResult.needs_context}`);
-  if (listenerResult.queries?.length) {
-    console.log(`  → queries: ${listenerResult.queries.length}`);
-  }
-
-  if (!listenerResult.needs_context) {
-    console.log('  → Skipping workers (no context needed)');
-    return null;
-  }
-
-  // Stage 2: Worker Orchestrator
-  console.log('\n  Stage 2: Worker Orchestrator...');
-  const workerResults = await runWorkers(
-    listenerResult.queries?.reduce((acc, q) => {
-      if (!acc[q.worker]) acc[q.worker] = [];
-      acc[q.worker].push({ query: q.query, limit: q.limit || 5 });
-      return acc;
-    }, {}) || {},
-    (active) => console.log(`  → Workers active: ${active.join(', ')}`)
-  );
-  console.log(`  → gmail: ${workerResults.gmail?.length || 0} results`);
-  console.log(`  → drive: ${workerResults.drive?.length || 0} results`);
-
-  // Stage 3: Analyser Agent
-  console.log('\n  Stage 3: Analyser Agent...');
-  const cards = await fuseWorkerResults(workerResults, segment.text, meetingContext);
-  console.log(`  → Generated ${cards.length} card(s)`);
-
-  return cards;
 }
-
-async function main() {
-  console.log('=== Full Pipeline Test ===');
-  console.log(`Transcript: ${mockTranscript.length} segments\n`);
-
-  const allCards = [];
-
-  // Test high-signal segments
-  for (const idx of [1, 4, 8, 11]) {
-    const cards = await runPipeline(idx);
-    if (cards) allCards.push(...cards);
-  }
-
-  console.log(`\n=== Pipeline Complete ===`);
-  console.log(`Total cards generated: ${allCards.length}`);
-
-  if (allCards.length > 0) {
-    console.log('\nCards:');
-    allCards.forEach((card, i) => {
-      console.log(`  ${i + 1}. [${card.label}] ${card.title} (confidence: ${card.confidence})`);
-    });
-  }
-
-  console.log('\nAll pipeline stages tested successfully.');
-}
-
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});

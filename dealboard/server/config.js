@@ -35,6 +35,7 @@ module.exports = {
   ANALYSER_MODEL: 'gemini-2.5-flash',
   STRATEGY_MODEL: 'gemini-2.5-pro',
   MEMORY_MODEL: 'gemini-2.5-flash',
+  RESEARCHER_MODEL: 'gemini-2.5-flash',
 
   // Timeouts
   GWS_COMMAND_TIMEOUT_MS: 10000,

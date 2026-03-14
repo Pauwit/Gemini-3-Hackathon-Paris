@@ -25,16 +25,17 @@
 
 const config = require('../config');
 
-// TODO: Import SDK when implementing
-// const { GoogleGenerativeAI } = require('@google/generative-ai');
-// let _client = null;
-// function getClient() {
-//   if (!_client) {
-//     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
-//     _client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-//   }
-//   return _client;
-// }
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+let _client = null;
+
+function getClient() {
+  if (!_client) {
+    if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
+    _client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+  }
+  return _client;
+}
 
 /**
  * generateContent
@@ -53,17 +54,22 @@ const config = require('../config');
  *   { responseMimeType: 'application/json' }
  * );
  */
-async function generateContent(model, prompt, options = {}) {
-  // TODO: getClient().getGenerativeModel({ model })
-  // TODO: model.generateContent({ contents: [{ role: 'user', parts: [{ text: prompt }] }], ...options })
-  // TODO: Return response.response.text()
-  // TODO: Handle API errors (rate limits, invalid key, etc.)
-
-  console.log('[gemini-client] generateContent called — TODO: implement', {
-    model,
-    promptLength: prompt?.length,
-  });
-  return '{}';
+async function generateContent(modelId, prompt, options = {}) {
+  try {
+    console.log(`[gemini-client] generateContent with model: ${modelId}`);
+    const model = getClient().getGenerativeModel({ model: modelId });
+    
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: options
+    });
+    
+    return result.response.text();
+  } catch (error) {
+    console.error(`[gemini-client] API Error:`, error.message);
+    // Return empty fallback structure so parsers don't catastrophically fail
+    return options.responseMimeType === 'application/json' ? '{}' : '';
+  }
 }
 
 /**

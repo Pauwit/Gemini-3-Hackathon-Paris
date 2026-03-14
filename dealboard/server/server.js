@@ -34,6 +34,9 @@ const config = require('./config');
 const healthRouter = require('./routes/api-health');
 const meetingsRouter = require('./routes/api-meetings');
 const memoryRouter = require('./routes/api-memory');
+const { analyzeTranscript } = require('./agents/listener-agent');
+const { processResearchRequest } = require('./workspace-researcher/index');
+const { fuseWorkerResults } = require('./agents/analyser-agent');
 
 // ── App Setup ───────────────────────────────────────────────
 const app = express();
@@ -65,6 +68,7 @@ const meetingState = {
   participants: [],
   title: '',
   context: '',
+  platform: 'Google Meet',
 };
 
 // ── WebSocket Connection Handler ─────────────────────────────
@@ -146,8 +150,9 @@ function handleMeetingStart(ws, payload) {
   meetingState.title = title;
   meetingState.participants = participants || [];
   meetingState.context = context || '';
+  meetingState.platform = 'Google Meet';
 
-  log('info', `Meeting starting: ${title}`, { meetingId });
+  log('info', `Meeting starting: ${title}`, { meetingId, platform: meetingState.platform });
 
   broadcastToClient(ws, 'meeting-state', {
     meetingId,
@@ -205,19 +210,71 @@ function handleAudioChunk(ws, payload) {
   }
 }
 
-function handleTextInput(ws, payload) {
+async function handleTextInput(ws, payload) {
   const { text, meetingId } = payload;
   log('info', `Text input received`, { meetingId, text: text.substring(0, 80) });
 
-  // Emit pipeline status
+  // 1. Emit pipeline status - Listener
   broadcastToClient(ws, 'pipeline-status', {
     meetingId,
-    stage: 'analysing',
+    stage: 'listener',
     workersActive: [],
-    message: `Processing: "${text.substring(0, 60)}..."`,
+    message: `Analyzing transcript...`,
   });
 
-  // TODO: Route to listener-agent → analyser-agent pipeline
+  try {
+    // 2. Pass transcript segment to Listener
+    const decision = await analyzeTranscript(text, meetingState);
+    
+    if (decision.needs_context && decision.queries.length > 0) {
+      log('info', `Listener decided context is needed`, { queries: decision.queries.length });
+      
+      // 3. Emit pipeline status - Workers
+      broadcastToClient(ws, 'pipeline-status', {
+        meetingId,
+        stage: 'workers',
+        workersActive: ['workspace-researcher'],
+        message: `Searching Workspace info for context...`,
+      });
+
+      // 4. Execute standard workspace research for each query
+      // For simplicity/safety, we grab the first query
+      const primaryQuery = decision.queries[0].query;
+      const workerResults = await processResearchRequest(primaryQuery);
+      
+      // 5. Emit pipeline status - Analyser
+      broadcastToClient(ws, 'pipeline-status', {
+        meetingId,
+        stage: 'analyser',
+        workersActive: [],
+        message: `Synthesizing intelligence cards...`,
+      });
+      
+      // 6. Fuse worker results into an AI Card
+      const cards = await fuseWorkerResults(workerResults, text, meetingState);
+      
+      // 7. Stream cards to clients
+      for (const card of cards) {
+        // Enforce the triggerSegmentId for UI alignment if provided by the client
+        card.triggerSegmentId = payload.segmentId || null;
+        broadcastToClient(ws, 'card', card);
+        log('info', `Broadcasted Card: ${card.label}`, { summary: card.summary });
+      }
+    } else {
+      log('info', `Listener decided NO context is needed.`);
+    }
+
+  } catch (error) {
+    log('error', `Pipeline failed processing text-input:`, { error: error.message });
+  } finally {
+    // 8. Reset pipeline to idle
+    broadcastToClient(ws, 'pipeline-status', {
+      meetingId,
+      stage: 'idle',
+      workersActive: [],
+      message: ``,
+    });
+  }
 }
 
 function handleGenerateDocuments(ws, payload) {

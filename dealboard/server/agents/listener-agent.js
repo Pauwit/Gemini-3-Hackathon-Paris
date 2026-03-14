@@ -28,9 +28,9 @@
 
 const config = require('../config');
 
-// TODO: Import gemini-client and skills-loader when implemented
-// const { generateContent } = require('../tools/gemini-client');
-// const { loadSkill } = require('../tools/skills-loader');
+const fs = require('fs');
+const path = require('path');
+const { generateContent } = require('../tools/gemini-client');
 
 /**
  * analyzeTranscript
@@ -49,18 +49,50 @@ const config = require('../config');
  * // result.queries[0].worker === 'gmail-worker'
  */
 async function analyzeTranscript(transcript, context) {
-  // TODO: Load listener-prompt.txt
-  // TODO: Build prompt with transcript + context
-  // TODO: Call Gemini Flash model
-  // TODO: Parse JSON response
-  // TODO: Return structured result
+  const promptPath = path.join(__dirname, '..', config.PROMPTS_DIR, 'listener-prompt.txt');
+  const systemPrompt = fs.readFileSync(promptPath, 'utf8');
 
-  console.log('[listener-agent] analyzeTranscript called — TODO: implement');
-  return {
-    needs_context: false,
-    reason: null,
-    queries: [],
-  };
+  // We ask the LLM to format requests targeting the 'workspace-researcher'
+  const contextualPrompt = `
+    ${systemPrompt}
+    
+    --- DATA ---
+    Context: ${JSON.stringify(context)}
+    Current Transcript Segment: "${transcript}"
+    
+    Remember: Your output MUST be ONLY valid JSON matching the schema and nothing else.
+    Important: If you need context, format your queries as instructions to the 'Workspace Researcher Agent'.
+    The Researcher Agent has access to Gmail, Drive, Calendar, Meet, and Maps.
+  `;
+
+  try {
+    const responseText = await generateContent(
+      config.LISTENER_MODEL, 
+      contextualPrompt, 
+      { responseMimeType: 'application/json', temperature: 0.1 }
+    );
+    
+    // Attempt to parse JSON strictly
+    const parsed = JSON.parse(responseText);
+    
+    console.log(`[listener-agent] Decision: needs_context=${parsed.needs_context}`);
+    if (parsed.needs_context) {
+      console.log(`[listener-agent] Recommending queries:`, parsed.queries);
+    }
+    
+    return {
+      needs_context: !!parsed.needs_context,
+      reason: parsed.reason || null,
+      queries: parsed.queries || []
+    };
+  } catch (error) {
+    console.error(`[listener-agent] Failed to analyze transcript:`, error);
+    return {
+      needs_context: false,
+      reason: "Error parsing LLM response",
+      queries: []
+    };
+  }
 }
 
 module.exports = { analyzeTranscript };

@@ -142,6 +142,7 @@ DealBoard uses Google's Material Design 3 principles with Gemini branding:
 | Analyser Agent (card generation) | [TODO] Backend |
 | Strategy Agent (document generation) | [TODO] Backend |
 | Memory Agent (knowledge graph) | [TODO] Backend |
+| Workspace Researcher Agent (GWS data fetching) | [DONE] Backend |
 | Live Card Board UI | [TODO] Frontend |
 | Live Transcript Panel UI | [TODO] Frontend |
 | Vision emotion display | [TODO] Frontend |
@@ -167,6 +168,10 @@ DealBoard uses Google's Material Design 3 principles with Gemini branding:
 | `server/agents/analyser-agent.js` | Worker results → Card synthesis | Backend |
 | `server/agents/strategy-agent.js` | Full meeting → documents | Backend |
 | `server/agents/memory-agent.js` | Meeting events → knowledge graph | Backend |
+| `server/workspace-researcher/index.js` | Main entry, API for Orchestrator | Backend |
+| `server/workspace-researcher/agent.js` | LLM invocation & tool matching | Backend |
+| `server/workspace-researcher/tools/*.js` | Gmail, Drive, Calendar definitions | Backend |
+| `server/workspace-researcher/test-runner.js` | Self-contained dry-run tests | Backend |
 | `server/workers/gmail-worker.js` | GWS Gmail search | Backend |
 | `server/workers/drive-worker.js` | GWS Drive search | Backend |
 | `server/workers/sheets-worker.js` | GWS Sheets read | Backend |
@@ -321,6 +326,7 @@ node scripts/test-listener.js    # Tests listener-agent with 3 high-signal segme
 node scripts/test-analyser.js    # Tests analyser-agent with mock worker results
 node scripts/test-strategy.js    # Tests strategy-agent, generates all 4 doc types
 node scripts/test-memory.js      # Tests memory-agent read/write
+node workspace-researcher/test-runner.js # Tests workspace-researcher dry run
 node scripts/test-pipeline.js    # Full pipeline end-to-end
 ```
 
