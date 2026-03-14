@@ -1,53 +1,105 @@
 /**
  * ============================================================
- * workers/sheets-worker.js — Google Sheets GWS Worker
+ * workers/sheets-worker.js — Google Sheets Worker
  * ============================================================
  *
  * PURPOSE:
  * Reads structured data from Google Sheets — pricing tables,
- * CRM data, discount rules, competitor comparisons — and
- * returns it in a usable format for the Analyser Agent.
+ * discount rules, competitor comparisons. Returns standardized
+ * result objects for the Analyser Agent.
+ * In mock mode, returns the first sheet entry from mock-workspace.json.
+ * In live mode, uses the Sheets API via google-auth.js.
+ *
+ * STANDARD RETURN FORMAT:
+ * { agent, question, answer, raw, error }
  *
  * DATA FLOW:
- * fileId + range → gws-tools.js (gws sheets read)
- *   → raw JSON output
- *   → parsed SheetData
- *   → worker-orchestrator.js
+ * spreadsheetId + range → [mock data | Sheets API] → standardized result
  *
- * PROTOCOL REFERENCE: skills/gws-sheets-read/SKILL.md
+ * PROTOCOL REFERENCE: N/A (internal worker)
  *
  * DEPENDENCIES:
- *   ../tools/gws-tools — CLI execution
- *   ../config          — GWS_COMMAND_TIMEOUT_MS
+ *   ../tools/google-auth — pre-authenticated Sheets client
+ *   ../config            — USE_MOCK
+ *   ../utils/logger      — structured logging
  * ============================================================
  */
 
 'use strict';
 
+const path = require('path');
 const config = require('../config');
-
-// TODO: Import gws-tools when implemented
-// const { runGwsCommand } = require('../tools/gws-tools');
+const logger = require('../utils/logger');
 
 /**
- * readSheet
- * Reads a range of cells from a Google Sheet.
- *
- * @param {string} fileId - Google Sheets file ID
- * @param {string} range - Cell range in A1 notation (e.g. 'Sheet1!A1:D20')
- * @returns {Promise<SheetData>} Sheet contents
- *   { values: string[][], range: string }
- *
- * @example
- * const data = await readSheet('1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms', 'Pricing!A1:F50');
- * // data.values[0] → ['Plan', 'Price/mo', 'Hosts', 'Metrics', ...]
+ * getMockData — loads mock workspace data (cached by Node require)
+ * @returns {object} Parsed mock-workspace.json
  */
-async function readSheet(fileId, range) {
-  // TODO: Call runGwsCommand('sheets read', { id: fileId, range })
-  // TODO: Parse JSON output into SheetData structure
+function getMockData() {
+  return require(path.join(__dirname, '..', 'mock-data', 'mock-workspace.json'));
+}
 
-  console.log('[sheets-worker] readSheet called — TODO: implement', { fileId, range });
-  return { values: [], range };
+/**
+ * formatSheetValues — converts 2D array of cell values into a readable string table
+ * @param {string[][]} values - 2D array of cell values
+ * @returns {string} Formatted table string
+ */
+function formatSheetValues(values) {
+  if (!values || values.length === 0) return '(empty sheet)';
+  return values.map(row => row.join(' | ')).join('\n');
+}
+
+/**
+ * readSheet — reads a range of cells from a Google Sheet
+ * @param {string} spreadsheetId - Google Sheets file ID (or 'mock' for mock mode)
+ * @param {string} [range] - Cell range in A1 notation (e.g. 'Sheet1!A1:E10')
+ * @returns {Promise<{agent: string, question: string, answer: string, raw: object, error: string|null}>}
+ */
+async function readSheet(spreadsheetId, range) {
+  const question = `Sheets: ${spreadsheetId} ${range || ''}`.trim();
+
+  try {
+    if (config.USE_MOCK) {
+      const mockData = getMockData();
+      const sheets = mockData.sheets || [];
+
+      // Find by ID or return first
+      const sheet = sheets.find(s => s.id === spreadsheetId) || sheets[0];
+
+      if (!sheet) {
+        return { agent: 'sheets', question, answer: 'No sheet data in mock.', raw: null, error: null };
+      }
+
+      const answer = `Sheet: ${sheet.name}\n${formatSheetValues(sheet.values)}`;
+      logger.info('[sheets-worker] Mock read complete', { spreadsheetId, sheetName: sheet.name });
+      return { agent: 'sheets', question, answer, raw: sheet, error: null };
+    }
+
+    // Live mode — use Google Sheets API
+    const { sheets } = require('../tools/google-auth');
+    if (!sheets) {
+      return { agent: 'sheets', question, answer: 'Sheets client not configured.', raw: null, error: 'NO_AUTH' };
+    }
+
+    const effectiveRange = range || 'Sheet1!A1:Z100';
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: effectiveRange,
+    });
+
+    const values = res.data.values || [];
+    const answer = values.length > 0
+      ? formatSheetValues(values)
+      : 'Sheet is empty or range has no data.';
+
+    const raw = { id: spreadsheetId, range: effectiveRange, values };
+    logger.info('[sheets-worker] Live read complete', { spreadsheetId, rows: values.length });
+    return { agent: 'sheets', question, answer, raw, error: null };
+
+  } catch (err) {
+    logger.error('[sheets-worker] readSheet failed', { error: err.message });
+    return { agent: 'sheets', question, answer: '', raw: null, error: err.message };
+  }
 }
 
 module.exports = { readSheet };

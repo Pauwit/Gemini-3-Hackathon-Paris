@@ -1,0 +1,86 @@
+{
+  "_comment": "Pre-built insights for demo/mock mode. Matches mock-workspace.json AcmeCorp scenario.",
+  "peopleBriefings": [
+    {
+      "id": "person-001",
+      "name": "Thomas Martin",
+      "title": "CTO",
+      "company": "AcmeCorp",
+      "summary": "Technical gatekeeper focused on compliance and cost predictability. Will raise ISO 27001 and pricing objections. Data-driven — needs numbers.",
+      "keyConcerns": ["ISO 27001 certification", "Predictable pricing", "No vendor lock-in", "EU data residency"],
+      "communicationStyle": "Direct and technical. Pushes back on pricing before features. Responds well to hard data and benchmarks.",
+      "recentActivity": "Requested ISO 27001 cert (March 10), raised flat-rate pricing request (March 8)",
+      "riskLevel": "medium",
+      "lastContact": "2026-03-10T09:15:00Z"
+    },
+    {
+      "id": "person-002",
+      "name": "Sarah Chen",
+      "title": "VP Engineering",
+      "company": "AcmeCorp",
+      "summary": "Real budget decision-maker. Frustrated with Datadog support quality. Approves up to $30K/month without board sign-off. Key ally to cultivate.",
+      "keyConcerns": ["Team productivity", "Alert fatigue reduction", "Migration complexity", "Support quality"],
+      "communicationStyle": "Outcome-focused. Cares about engineer experience and productivity metrics. Less price-sensitive than Thomas.",
+      "recentActivity": "Attending technical demo March 20th. Budget owner confirmed by internal intel.",
+      "riskLevel": "low",
+      "lastContact": "2026-03-07T11:00:00Z"
+    }
+  ],
+  "projectUpdates": [
+    {
+      "id": "project-001",
+      "name": "AcmeCorp Enterprise Deal",
+      "status": "at_risk",
+      "summary": "6-week window before Datadog contract renewal (April 30). Technical demo on March 20. ISO 27001 delivered. Flat-rate proposal at $22K/month prepared. Decision by April 15 needed.",
+      "keyMilestones": [
+        { "date": "2026-03-11", "event": "ISO 27001 certificate delivered", "status": "completed" },
+        { "date": "2026-03-20", "event": "Technical demo", "status": "upcoming" },
+        { "date": "2026-04-15", "event": "Decision deadline", "status": "upcoming" },
+        { "date": "2026-04-30", "event": "Datadog contract expiry", "status": "upcoming" }
+      ],
+      "dealValue": "$22,000/month (annual: $264,000 ARR)",
+      "competitor": "Datadog (incumbent)",
+      "winProbability": 65,
+      "lastUpdated": "2026-03-12T16:00:00Z"
+    }
+  ],
+  "strategicAdvice": [
+    {
+      "id": "advice-001",
+      "priority": "critical",
+      "title": "Re-engage Sarah Chen before the demo",
+      "advice": "Sarah Chen (VP Eng) is the real budget approver, not Thomas. Send her a personalized note highlighting alert noise reduction (her team's pain point) before the March 20 demo. Include the G2 support rating comparison.",
+      "rationale": "Internal intel confirms Sarah controls up to $30K/month without board approval. Thomas is a gatekeeper. Our deal is within Sarah's approval threshold at $22K/month.",
+      "action": "Email Sarah Chen with Datadog support rating comparison and alert noise reduction case study",
+      "deadline": "2026-03-18"
+    },
+    {
+      "id": "advice-002",
+      "priority": "high",
+      "title": "Lead the demo with alert noise reduction",
+      "advice": "Thomas specifically mentioned 400+ daily alerts as a pain point. Open the demo with our alert correlation engine reducing noise by 95%. Have a live comparison side-by-side with a Datadog customer scenario.",
+      "rationale": "Alert fatigue was raised by Thomas in Q4 notes and is a known Datadog weakness. This differentiator is highly emotional and memorable for engineering teams.",
+      "action": "Prepare demo scenario showing Datadog 400-alert day vs our 20-alert equivalent",
+      "deadline": "2026-03-19"
+    },
+    {
+      "id": "advice-003",
+      "priority": "high",
+      "title": "ISO 27001 delivered — confirm receipt before demo",
+      "advice": "Compliance sent the ISO 27001 certificate on March 11. Confirm Thomas has shared it with his security team and gotten their thumbs up before the demo. This removes the last blocker from the compliance track.",
+      "rationale": "Thomas explicitly said ISO 27001 is a hard requirement from their CISO. Getting pre-clearance removes an objection and speeds post-demo decision.",
+      "action": "Send Thomas a brief 'Did your security team review the cert?' check-in email",
+      "deadline": "2026-03-17"
+    },
+    {
+      "id": "advice-004",
+      "priority": "medium",
+      "title": "Prepare for Q1 pipeline review on March 28",
+      "advice": "AcmeCorp should be in Verbal Commit stage by March 28 pipeline review. Push for a post-demo decision call on March 24-25 to stay on track. Have the final contract draft ready to send immediately after verbal commit.",
+      "rationale": "VP Sales will ask for AcmeCorp status in the March 28 pipeline review. Being in Verbal Commit stage prevents deal from being flagged as at-risk.",
+      "action": "Block March 24-25 for AcmeCorp decision call. Prepare contract template.",
+      "deadline": "2026-03-21"
+    }
+  ],
+  "lastGeneratedAt": "2026-03-14T12:00:00Z"
+}

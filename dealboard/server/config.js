@@ -54,4 +54,24 @@ module.exports = {
   PROMPTS_DIR: './prompts',
   SKILLS_DIR: '../skills',
   MOCK_DATA_DIR: './mock-data',
+
+  // Async Brain
+  ASYNC_SCAN_INTERVAL_MS: parseInt(process.env.ASYNC_SCAN_INTERVAL_MS) || 15 * 60 * 1000,
+  ASYNC_EMAIL_LOOKBACK_HOURS: parseInt(process.env.ASYNC_EMAIL_LOOKBACK_HOURS) || 24,
+  ASYNC_MAX_EMAILS_PER_SCAN: parseInt(process.env.ASYNC_MAX_EMAILS_PER_SCAN) || 50,
+  ASYNC_CALENDAR_LOOKAHEAD_DAYS: parseInt(process.env.ASYNC_CALENDAR_LOOKAHEAD_DAYS) || 7,
+  ENABLE_ASYNC_SCANNER: process.env.ENABLE_ASYNC_SCANNER !== 'false',
+  ENABLE_CHAT: process.env.ENABLE_CHAT !== 'false',
+  DATA_STORE_PATH: process.env.DATA_STORE_PATH || './data/store.json',
+  GEMINI_TIMEOUT_MS: parseInt(process.env.GEMINI_TIMEOUT_MS) || 30000,
+  GEMINI_MAX_RETRIES: parseInt(process.env.GEMINI_MAX_RETRIES) || 3,
+
+  // Google OAuth (for real API mode)
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/oauth2callback',
+  GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN || '',
+
+  // Model aliases for new agents
+  ANALYSIS_MODEL: process.env.ANALYSIS_MODEL || 'gemini-2.5-flash',
 };
