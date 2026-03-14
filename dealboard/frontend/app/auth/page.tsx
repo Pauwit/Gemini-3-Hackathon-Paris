@@ -249,7 +249,7 @@ export default function AuthPage() {
           </h1>
           <p className="text-white/80 text-base max-w-md">
             Real-time intelligence cards, competitive battlecards, and
-            strategic guidance — powered by Gemini 2.0.
+            strategic guidance — powered by Gemini 3.1.
           </p>
         </div>
 
@@ -276,7 +276,7 @@ export default function AuthPage() {
 
         {/* Bottom attribution */}
         <p className="text-white/50 text-xs mt-12">
-          Built with Gemini 2.0 · Google Workspace APIs · Paris Hackathon 2025
+          Built with Gemini 3.1 · Google Workspace APIs · Paris Hackathon 2025
         </p>
       </div>
 
