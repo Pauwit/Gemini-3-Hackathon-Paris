@@ -282,7 +282,7 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-1">
           <p className="text-xs" style={{ color: '#5F6368' }}>Version: 1.0.0-hackathon</p>
-          <p className="text-xs" style={{ color: '#5F6368' }}>Powered by Gemini 2.0 Flash</p>
+          <p className="text-xs" style={{ color: '#5F6368' }}>Powered by Gemini 3.1 Flash</p>
           <p className="text-xs" style={{ color: '#9AA0A6' }}>Built for Gemini 3 Hackathon Paris — March 2025</p>
         </div>
       </Card>

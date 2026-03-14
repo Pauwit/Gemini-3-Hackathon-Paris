@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     default:  'DealBoard AI Companion',
     template: '%s — DealBoard',
   },
-  description: 'Real-time AI sales intelligence powered by Gemini 2.0. ' +
+  description: 'Real-time AI sales intelligence powered by Gemini 3.1. ' +
     'Live meeting cards, Google Workspace integration, and persistent memory.',
   keywords:    ['sales intelligence', 'AI', 'Gemini', 'meeting assistant', 'Google Workspace'],
   authors:     [{ name: 'DealBoard Team' }],

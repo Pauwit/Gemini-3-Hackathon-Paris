@@ -38,6 +38,7 @@ import {
   Brain,
   Settings,
   Zap,
+  ChevronLeft,
 } from 'lucide-react';
 import { useWebSocketContext } from '../providers/WebSocketProvider';
 import { StatusIndicator } from './StatusIndicator';
@@ -147,6 +148,17 @@ export function Sidebar() {
 
       {/* ── Navigation ───────────────────────────────────── */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
+        {/* Back to Dashboard — shown on secondary pages */}
+        {pathname !== '/dashboard' && (
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 px-3 py-2 mb-2 rounded-lg text-xs font-medium transition-colors group"
+            style={{ color: '#9AA0A6' }}
+          >
+            <ChevronLeft size={13} className="group-hover:translate-x-[-2px] transition-transform" />
+            Dashboard
+          </Link>
+        )}
         <div className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const active  = isActive(item.href);
@@ -228,7 +240,7 @@ export function Sidebar() {
 
         {/* Version / branding footer */}
         <p className="text-[10px]" style={{ color: '#9AA0A6' }}>
-          Powered by Gemini 2.0
+          Powered by Gemini 3.1
         </p>
       </div>
     </aside>

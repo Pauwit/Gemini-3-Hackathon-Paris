@@ -21,6 +21,9 @@ export const config = {
   WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws',
   API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
 
+  // Google OAuth — leave empty to fall back to demo mode
+  GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+
   // Feature Flags (mirror server flags for conditional UI)
   ENABLE_VISION: process.env.NEXT_PUBLIC_ENABLE_VISION !== 'false',
   ENABLE_MEMORY_VIEW: process.env.NEXT_PUBLIC_ENABLE_MEMORY !== 'false',
