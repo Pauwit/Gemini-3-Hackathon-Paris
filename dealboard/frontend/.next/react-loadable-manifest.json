@@ -1,0 +1,20 @@
+{
+  "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-cards.json": {
+    "id": "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-cards.json",
+    "files": [
+      "static/chunks/_app-pages-browser_mock-data_mock-cards_json.js"
+    ]
+  },
+  "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-documents.json": {
+    "id": "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-documents.json",
+    "files": [
+      "static/chunks/_app-pages-browser_mock-data_mock-documents_json.js"
+    ]
+  },
+  "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-transcript.json": {
+    "id": "components/providers/WebSocketProvider.tsx -> ../../mock-data/mock-transcript.json",
+    "files": [
+      "static/chunks/_app-pages-browser_mock-data_mock-transcript_json.js"
+    ]
+  }
+}

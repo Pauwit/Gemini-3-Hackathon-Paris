@@ -88,15 +88,16 @@ export default function AuthPage() {
     }
   }, [router]);
 
-  /**
-   * handleSignIn
-   * Simulates Google OAuth sign-in by storing auth flag in localStorage
-   * and navigating to the dashboard.
-   */
-  async function handleSignIn() {
+  /** Real Google OAuth — redirects to backend which handles the full flow */
+  function handleSignIn() {
     setLoading(true);
-    // Simulate brief OAuth round-trip delay
-    await new Promise((r) => setTimeout(r, 800));
+    window.location.href = 'http://localhost:3001/auth/google';
+  }
+
+  /** Demo mode — skips OAuth, uses mock user */
+  async function handleDemoSignIn() {
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 400));
     localStorage.setItem('dealboard_auth', 'true');
     localStorage.setItem('dealboard_user', JSON.stringify({
       name:   'Sarah Chen',
@@ -246,7 +247,7 @@ export default function AuthPage() {
 
           {/* Demo mode button */}
           <button
-            onClick={handleSignIn}
+            onClick={handleDemoSignIn}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border
               transition-all duration-150 text-sm font-medium
