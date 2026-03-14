@@ -263,7 +263,7 @@ export default function DashboardPage() {
               Start a live meeting to activate AI intelligence
             </p>
             <p className="text-xs" style={{ color: '#5F6368' }}>
-              Real-time cards, competitive battlecards, and strategic guidance powered by Gemini 2.0
+              Real-time cards, competitive battlecards, and strategic guidance powered by Gemini 3.1
             </p>
           </div>
         </div>
