@@ -51,11 +51,42 @@ function extractClaims(text) {
 	return { numericClaims, complianceClaims, certaintyClaims };
 }
 
+function looksLikeQuestion(text) {
+	if (!text) return false;
+	if (text.includes('?')) return true;
+	if (/\b(i need to know|can you tell me|do you know|let me know)\b/i.test(text) && /\b(what|why|how|when|who|which|where)\b/i.test(text)) {
+		return true;
+	}
+	return /^(what|why|how|when|who|which|where|can|could|would|should|do|does|did|is|are)\b/i.test(text.trim());
+}
+
+function looksLikeScenarioRequest(text) {
+	if (!text) return false;
+	return /(scenario|what if|objection|pushback|procurement|security review|budget freeze|competitor|if they say|if they ask|negotiat|renewal)/i.test(text);
+}
+
+function looksLikeSimpleMathQuestion(text) {
+	if (!text) return false;
+	const hasMathExpression = /\b\d+(?:\.\d+)?\s*[+\-*/x]\s*\d+(?:\.\d+)?\b/i.test(text);
+	const hasMathWords = /(plus|minus|times|multiplied by|divided by|equals?|equal to)/i.test(text);
+	return looksLikeQuestion(text) && (hasMathExpression || hasMathWords);
+}
+
+function hasBusinessNumericContext(text) {
+	if (!text) return false;
+	return /(price|pricing|budget|cost|discount|contract|renewal|invoice|revenue|margin|quota|headcount|seats|sla|uptime|compliance|deadline|timeline|delivery|milestone|roi|conversion|latency|availability)/i.test(text);
+}
+
 function heuristicFactChecks(text, knowledgeBase) {
 	const checks = [];
 	const claims = extractClaims(text);
+	const materialNumericSignal = claims.numericClaims.some((claim) => /[\$%]|\b(k|m|b|hosts?|months?|years?|days?)\b/i.test(claim));
+	const shouldReviewNumeric =
+		claims.numericClaims.length > 0 &&
+		!looksLikeSimpleMathQuestion(text) &&
+		(hasBusinessNumericContext(text) || materialNumericSignal);
 
-	if (claims.numericClaims.length) {
+	if (shouldReviewNumeric) {
 		checks.push({
 			claim: `Numeric claims detected: ${claims.numericClaims.join(', ')}`,
 			verdict: 'needs-review',
@@ -105,13 +136,13 @@ function heuristicInsights(text, meetingContext) {
 	if (/(price|pricing|discount|budget|cost|renewal)/i.test(text)) {
 		cards.push({
 			label: 'BATTLECARD',
-			title: 'Pricing Pressure Detected',
-			summary: 'The buyer appears price-sensitive. Anchor on value before discounting.',
+			title: 'Budget Topic Detected',
+			summary: 'A budget-sensitive topic was raised. Emphasize outcomes, constraints, and options.',
 			confidence: 0.84,
 			details: [
 				{
 					question: 'What should be done now?',
-					answer: 'Confirm budget, contract term, and urgency before discussing concessions.',
+					answer: 'Confirm priorities, constraints, and timeline before proposing trade-offs.',
 					source: 'Companion heuristic',
 				},
 			],
@@ -156,11 +187,80 @@ function heuristicInsights(text, meetingContext) {
 	return cards.slice(0, 3);
 }
 
+function heuristicSituationSummary(text, meetingContext) {
+	const contextBits = [];
+
+	if (/(risk|blocked|concern|issue|problem|delay)/i.test(text)) {
+		contextBits.push('A risk or blocker is being discussed.');
+	}
+	if (/(price|budget|cost|discount)/i.test(text)) {
+		contextBits.push('Budget and cost considerations are active in the conversation.');
+	}
+	if (/(timeline|deadline|when|date|milestone)/i.test(text)) {
+		contextBits.push('Timing and delivery expectations are important right now.');
+	}
+
+	if (contextBits.length === 0) {
+		contextBits.push('The conversation is in discovery/clarification mode; confirm intent before moving forward.');
+	}
+
+	return {
+		summary: contextBits.join(' '),
+		audience: meetingContext?.lastSpeaker || 'Unknown participant',
+		confidence: 0.72,
+	};
+}
+
+function heuristicQuestionResponse(text) {
+	const isQuestion = looksLikeQuestion(text);
+
+	if (isQuestion) {
+		return {
+			answer: 'Direct answer: acknowledge the question, answer clearly in one sentence, then add one concrete example.',
+			talkTrack: 'Great question. The short answer is yes in most cases; the practical impact is faster execution with less manual effort.',
+			confidence: 0.72,
+		};
+	}
+
+	return {
+		answer: 'Likely next question: what is the concrete impact and timeline? Prepare a concise answer with one measurable outcome.',
+		talkTrack: 'If helpful, we can map this to your exact context and define what success looks like in the first phase.',
+		confidence: 0.68,
+	};
+}
+
+function heuristicRealtimeFeedback(text) {
+	const points = [];
+
+	if (/(always|never|guarantee|definitely)/i.test(text)) {
+		points.push('Avoid absolute language unless you can verify it.');
+	}
+	if (text.length > 260) {
+		points.push('Condense your next response to 1-2 sentences for clarity.');
+	}
+	if (/(you should|you need to)/i.test(text)) {
+		points.push('Use collaborative phrasing to keep the conversation open.');
+	}
+
+	if (points.length === 0) {
+		points.push('Good pace. Next, ask one focused follow-up question to validate alignment.');
+	}
+
+	return {
+		feedback: points.join(' '),
+		nextLine: 'Would you like me to summarize the options and recommend the best next step?',
+		confidence: 0.74,
+	};
+}
+
 async function geminiInsights(text, meetingContext, knowledgeBase) {
 	const prompt = [
-		'You are a real-time AI meeting companion for enterprise sales.',
+		'You are a real-time AI conversation companion for any professional conversation type.',
+		'Infer who the user is speaking with (role and intent) from transcript/context. Be role-agnostic (customer, teammate, manager, recruiter, partner, interviewer, etc.).',
 		'Return strict JSON only with this schema:',
-		'{"cards":[{"label":"ALERT|BATTLECARD|CONTEXT|STRATEGY|INFO","title":"string","summary":"string","confidence":0.0,"details":[{"question":"string","answer":"string","source":"string"}]}],"factChecks":[{"claim":"string","verdict":"verified|partial|needs-review","confidence":0.0,"reason":"string","source":"string"}],"assistantCue":"string"}',
+		'{"cards":[{"label":"ALERT|BATTLECARD|CONTEXT|STRATEGY|INFO","title":"string","summary":"string","confidence":0.0,"details":[{"question":"string","answer":"string","source":"string"}]}],"factChecks":[{"claim":"string","verdict":"verified|partial|needs-review","confidence":0.0,"reason":"string","source":"string"}],"assistantCue":"string","situation":{"summary":"string","audience":"string","confidence":0.0},"questionResponse":{"answer":"string","talkTrack":"string","confidence":0.0},"realtimeFeedback":{"feedback":"string","nextLine":"string","confidence":0.0}}',
+		'IMPORTANT: Always fill situation, questionResponse, and realtimeFeedback every turn, at the same time.',
+		'questionResponse must handle any question type and provide a concise speakable talkTrack.',
 		'Prioritize practical, concise, and actionable output.',
 		'Use confidence from 0 to 1.',
 		`Meeting context: ${JSON.stringify(meetingContext || {})}`,
@@ -188,6 +288,83 @@ async function geminiInsights(text, meetingContext, knowledgeBase) {
 		cards: Array.isArray(parsed.cards) ? parsed.cards : [],
 		factChecks: Array.isArray(parsed.factChecks) ? parsed.factChecks : [],
 		assistantCue: typeof parsed.assistantCue === 'string' ? parsed.assistantCue : '',
+		situation: parsed?.situation && typeof parsed.situation === 'object' ? parsed.situation : null,
+		questionResponse: parsed?.questionResponse && typeof parsed.questionResponse === 'object' ? parsed.questionResponse : null,
+		realtimeFeedback: parsed?.realtimeFeedback && typeof parsed.realtimeFeedback === 'object' ? parsed.realtimeFeedback : null,
+	};
+}
+
+function buildSituationCard(situation) {
+	const summary = situation?.summary || '';
+	const audience = situation?.audience || 'Unknown participant';
+
+	if (!summary) return null;
+
+	return {
+		label: 'CONTEXT',
+		title: 'Situation Understanding',
+		summary,
+		confidence: normalizeConfidence(situation?.confidence, 0.74),
+		details: [
+			{
+				question: 'Who you may be speaking with',
+				answer: audience,
+				source: 'AI Companion',
+			},
+		],
+	};
+}
+
+function buildDirectAnswerCard(text, directAnswer) {
+	const answer = directAnswer?.answer || '';
+	const talkTrack = directAnswer?.talkTrack || '';
+	const confidence = normalizeConfidence(directAnswer?.confidence, 0.74);
+
+	if (!answer && !talkTrack) return null;
+
+	return {
+		label: 'CONTEXT',
+		title: 'Instant Answer',
+		summary: answer || talkTrack,
+		confidence,
+		details: [
+			{
+				question: 'Question detected',
+				answer: text,
+				source: 'Live transcript',
+			},
+			{
+				question: 'Suggested response',
+				answer: talkTrack || answer,
+				source: 'AI Companion',
+			},
+		],
+	};
+}
+
+function buildRealtimeFeedbackCard(realtimeFeedback) {
+	const feedback = realtimeFeedback?.feedback || '';
+	const nextLine = realtimeFeedback?.nextLine || '';
+
+	if (!feedback && !nextLine) return null;
+
+	return {
+		label: 'STRATEGY',
+		title: 'Real-Time Feedback',
+		summary: feedback || 'Keep responses concise and validate alignment before moving on.',
+		confidence: normalizeConfidence(realtimeFeedback?.confidence, 0.75),
+		details: [
+			{
+				question: 'Immediate coaching',
+				answer: feedback || 'Pause, confirm understanding, then provide one concrete next step.',
+				source: 'AI Companion',
+			},
+			{
+				question: 'Suggested next line',
+				answer: nextLine || 'Does this align with what you want to achieve?',
+				source: 'AI Companion',
+			},
+		],
 	};
 }
 
@@ -230,10 +407,14 @@ function buildAssistantCard(assistantCue) {
 
 async function analyzeLiveSegment(text, meetingContext = {}) {
 	const knowledgeBase = loadKnowledgeBase();
+	const isQuestion = looksLikeQuestion(text);
 
 	let cards = [];
 	let factChecks = [];
 	let assistantCue = '';
+	let situation = null;
+	let questionResponse = null;
+	let realtimeFeedback = null;
 	let modelUsed = 'heuristic';
 
 	if (config.GEMINI_API_KEY) {
@@ -242,11 +423,14 @@ async function analyzeLiveSegment(text, meetingContext = {}) {
 			cards = aiResult.cards;
 			factChecks = aiResult.factChecks;
 			assistantCue = aiResult.assistantCue;
+			situation = aiResult.situation;
+			questionResponse = aiResult.questionResponse;
+			realtimeFeedback = aiResult.realtimeFeedback;
 			modelUsed = 'gemini';
 		} catch {
 			cards = heuristicInsights(text, meetingContext);
 			factChecks = heuristicFactChecks(text, knowledgeBase);
-			assistantCue = 'Summarize the buyer priority in one sentence and ask for confirmation.';
+			assistantCue = 'Summarize the current priority in one sentence and ask for confirmation.';
 			modelUsed = 'heuristic-fallback';
 		}
 	} else {
@@ -254,6 +438,10 @@ async function analyzeLiveSegment(text, meetingContext = {}) {
 		factChecks = heuristicFactChecks(text, knowledgeBase);
 		assistantCue = 'Acknowledge the point and ask a clarifying follow-up question.';
 	}
+
+	if (!situation) situation = heuristicSituationSummary(text, meetingContext);
+	if (!questionResponse) questionResponse = heuristicQuestionResponse(text);
+	if (!realtimeFeedback) realtimeFeedback = heuristicRealtimeFeedback(text);
 
 	const normalizedCards = cards
 		.filter((card) => card && typeof card.title === 'string' && typeof card.summary === 'string')
@@ -271,12 +459,19 @@ async function analyzeLiveSegment(text, meetingContext = {}) {
 				: [],
 		}));
 
-	const factCard = buildFactCheckCard(
-		factChecks.length ? factChecks : heuristicFactChecks(text, knowledgeBase)
-	);
+	const selectedFactChecks = !isQuestion
+		? (factChecks.length ? factChecks : heuristicFactChecks(text, knowledgeBase))
+		: [];
+	const factCard = buildFactCheckCard(selectedFactChecks);
 	const assistantCard = buildAssistantCard(assistantCue);
+	const situationCard = buildSituationCard(situation);
+	const directAnswerCard = buildDirectAnswerCard(text, questionResponse);
+	const feedbackCard = buildRealtimeFeedbackCard(realtimeFeedback);
 
 	const outputCards = [...normalizedCards];
+	if (feedbackCard) outputCards.unshift(feedbackCard);
+	if (directAnswerCard) outputCards.unshift(directAnswerCard);
+	if (situationCard) outputCards.unshift(situationCard);
 	if (factCard) outputCards.push(factCard);
 	if (assistantCard) outputCards.push(assistantCard);
 

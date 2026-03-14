@@ -1,0 +1,944 @@
+{
+  "meetings": [
+    {
+      "id": "meeting-1773500394591",
+      "title": "test3",
+      "date": "2026-03-14T15:00:48.011Z",
+      "duration": 1,
+      "participants": [],
+      "cardCount": 12,
+      "documentCount": 1
+    },
+    {
+      "id": "meeting-1773500291042",
+      "title": "TEST 2",
+      "date": "2026-03-14T14:58:14.924Z",
+      "duration": 1,
+      "participants": [],
+      "cardCount": 0,
+      "documentCount": 1
+    },
+    {
+      "id": "meeting-1773500219314",
+      "title": "TEST 2",
+      "date": "2026-03-14T14:57:23.991Z",
+      "duration": 1,
+      "participants": [],
+      "cardCount": 5,
+      "documentCount": 1
+    },
+    {
+      "id": "meeting-1773499889100",
+      "title": "Test",
+      "date": "2026-03-14T14:52:42.199Z",
+      "duration": 1,
+      "participants": [],
+      "cardCount": 20,
+      "documentCount": 1
+    },
+    {
+      "id": "meeting-1773499818258",
+      "title": "Sales",
+      "date": "2026-03-14T14:51:01.637Z",
+      "duration": 1,
+      "participants": [],
+      "cardCount": 0,
+      "documentCount": 1
+    }
+  ],
+  "documentsByMeeting": {
+    "meeting-1773499818258": [
+      {
+        "meetingId": "meeting-1773499818258",
+        "documentId": "doc-recap-1773499862165",
+        "type": "summary",
+        "title": "Meeting Recap",
+        "content": "# Meeting Recap — Sales\n\n## Participants\nN/A\n\n## What Happened\nConversation recap generated from live transcript and coaching cards.\n\n## Key Moments\n- No transcript captured.\n\n## AI Highlights\n- No AI cards captured.\n\n## Suggested Next Steps\n- Share a concise follow-up with decisions and open questions.\n- Confirm owners and due dates for action items.",
+        "generatedAt": "2026-03-14T14:51:01.637Z"
+      }
+    ],
+    "meeting-1773499889100": [
+      {
+        "meetingId": "meeting-1773499889100",
+        "documentId": "doc-recap-1773499962702",
+        "type": "summary",
+        "title": "Meeting Recap",
+        "content": "# Meeting Recap — Test\n\n## Participants\nN/A\n\n## What Happened\nConversation recap generated from live transcript and coaching cards.\n\n## Key Moments\n- Meeting Speaker: what is 1 + 1\n- Meeting Speaker: do you know what 1 plus 1 is\n- Meeting Speaker: do you know what animal Barks\n- Meeting Speaker: I need to know what animal works\n- Meeting Speaker: what is a dog\n\n## AI Highlights\n- Live Coaching Suggestion: Use an open question, then a quantifying question, then a close question.\n- Live Assistant Cue: Acknowledge the point and ask a clarifying follow-up question.\n- Live Coaching Suggestion: Use an open question, then a quantifying question, then a close question.\n- Live Assistant Cue: Acknowledge the point and ask a clarifying follow-up question.\n- Instant Answer: A good response is to acknowledge the question, answer briefly, and tie back to measurable outcomes.\n\n## Suggested Next Steps\n- Share a concise follow-up with decisions and open questions.\n- Confirm owners and due dates for action items.",
+        "generatedAt": "2026-03-14T14:52:42.199Z"
+      }
+    ],
+    "meeting-1773500219314": [
+      {
+        "meetingId": "meeting-1773500219314",
+        "documentId": "doc-recap-1773500244494",
+        "type": "summary",
+        "title": "Meeting Recap",
+        "content": "# Meeting Recap — TEST 2\n\n## Participants\nN/A\n\n## What Happened\nConversation recap generated from live transcript and coaching cards.\n\n## Key Moments\n- Meeting Speaker: what is one plus one\n\n## AI Highlights\n- Situation Understanding: The conversation is in discovery/clarification mode; confirm intent before moving forward.\n- Instant Answer: Direct answer: acknowledge the question, answer clearly in one sentence, then add one concrete example.\n- Real-Time Feedback: Good pace. Next, ask one focused follow-up question to validate alignment.\n- Live Coaching Suggestion: Use an open question, then a quantifying question, then a close question.\n- Live Assistant Cue: Acknowledge the point and ask a clarifying follow-up question.\n\n## Suggested Next Steps\n- Share a concise follow-up with decisions and open questions.\n- Confirm owners and due dates for action items.",
+        "generatedAt": "2026-03-14T14:57:23.991Z"
+      }
+    ],
+    "meeting-1773500291042": [
+      {
+        "meetingId": "meeting-1773500291042",
+        "documentId": "doc-recap-1773500295428",
+        "type": "summary",
+        "title": "Meeting Recap",
+        "content": "# Meeting Recap — TEST 2\n\n## Participants\nN/A\n\n## What Happened\nConversation recap generated from live transcript and coaching cards.\n\n## Key Moments\n- No transcript captured.\n\n## AI Highlights\n- No AI cards captured.\n\n## Suggested Next Steps\n- Share a concise follow-up with decisions and open questions.\n- Confirm owners and due dates for action items.",
+        "generatedAt": "2026-03-14T14:58:14.924Z"
+      }
+    ],
+    "meeting-1773500394591": [
+      {
+        "meetingId": "meeting-1773500394591",
+        "documentId": "doc-recap-1773500448512",
+        "type": "summary",
+        "title": "Meeting Recap",
+        "content": "### Overview\nThe meeting consisted of a series of basic, unrelated questions, likely to test the system's knowledge and responsiveness. The conversation covered simple arithmetic and general knowledge about animals.\n\n### Decisions\n- No decisions were made during this session.\n\n### Risks\n- No risks were identified.\n\n### Next Steps\n- No next steps were established.",
+        "generatedAt": "2026-03-14T15:00:48.011Z"
+      }
+    ]
+  },
+  "cardsByMeeting": {
+    "meeting-1773499818258": [],
+    "meeting-1773499889100": [
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499912976-d40bf5",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "hello knife for the first application on before",
+        "timestamp": "2026-03-14T14:51:52.977Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499912979-2e3835",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "hello knife for the first application on before",
+        "timestamp": "2026-03-14T14:51:52.979Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499915621-767529",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T14:51:55.621Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499915621-eb4350",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T14:51:55.621Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499920224-e8197f",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "A good response is to acknowledge the question, answer briefly, and tie back to measurable outcomes.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "what is 1 + 1",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Great question. The short answer is yes for this use case, and the impact is faster resolution with less manual work.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.7,
+        "triggeredBy": "what is 1 + 1",
+        "timestamp": "2026-03-14T14:52:00.224Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499920224-44915c",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "what is 1 + 1",
+        "timestamp": "2026-03-14T14:52:00.224Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499920224-4cf8d1",
+        "label": "ALERT",
+        "title": "Fact Verification",
+        "summary": "Review needed: Numeric claims detected: 1, 1",
+        "details": [
+          {
+            "question": "Numeric claims detected: 1, 1",
+            "answer": "NEEDS-REVIEW: Numeric statements should be validated against approved pricing and contracts.",
+            "source": "Live transcript"
+          }
+        ],
+        "confidence": 0.68,
+        "triggeredBy": "what is 1 + 1",
+        "timestamp": "2026-03-14T14:52:00.224Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499920224-c68411",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "what is 1 + 1",
+        "timestamp": "2026-03-14T14:52:00.224Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499934158-5c8451",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "A good response is to acknowledge the question, answer briefly, and tie back to measurable outcomes.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "do you know what 1 plus 1 is",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Great question. The short answer is yes for this use case, and the impact is faster resolution with less manual work.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.7,
+        "triggeredBy": "do you know what 1 plus 1 is",
+        "timestamp": "2026-03-14T14:52:14.158Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499934159-04f08e",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "do you know what 1 plus 1 is",
+        "timestamp": "2026-03-14T14:52:14.159Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499934159-ef54df",
+        "label": "ALERT",
+        "title": "Fact Verification",
+        "summary": "Review needed: Numeric claims detected: 1, 1",
+        "details": [
+          {
+            "question": "Numeric claims detected: 1, 1",
+            "answer": "NEEDS-REVIEW: Numeric statements should be validated against approved pricing and contracts.",
+            "source": "Live transcript"
+          }
+        ],
+        "confidence": 0.68,
+        "triggeredBy": "do you know what 1 plus 1 is",
+        "timestamp": "2026-03-14T14:52:14.159Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499934159-e159c0",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "do you know what 1 plus 1 is",
+        "timestamp": "2026-03-14T14:52:14.159Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499943811-374778",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "A good response is to acknowledge the question, answer briefly, and tie back to measurable outcomes.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "do you know what animal Barks",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Great question. The short answer is yes for this use case, and the impact is faster resolution with less manual work.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.7,
+        "triggeredBy": "do you know what animal Barks",
+        "timestamp": "2026-03-14T14:52:23.811Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499943812-3d7c41",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "do you know what animal Barks",
+        "timestamp": "2026-03-14T14:52:23.812Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499943812-1dee34",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "do you know what animal Barks",
+        "timestamp": "2026-03-14T14:52:23.812Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499952927-e29f1e",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "I need to know what animal works",
+        "timestamp": "2026-03-14T14:52:32.927Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499952928-169822",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "I need to know what animal works",
+        "timestamp": "2026-03-14T14:52:32.928Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499956298-edb30f",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "A good response is to acknowledge the question, answer briefly, and tie back to measurable outcomes.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "what is a dog",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Great question. The short answer is yes for this use case, and the impact is faster resolution with less manual work.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.7,
+        "triggeredBy": "what is a dog",
+        "timestamp": "2026-03-14T14:52:36.298Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499956298-612d1b",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "what is a dog",
+        "timestamp": "2026-03-14T14:52:36.298Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "cardId": "card-1773499956298-33fd1b",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "what is a dog",
+        "timestamp": "2026-03-14T14:52:36.298Z"
+      }
+    ],
+    "meeting-1773500219314": [
+      {
+        "meetingId": "meeting-1773500219314",
+        "cardId": "card-1773500241644-69210d",
+        "label": "CONTEXT",
+        "title": "Situation Understanding",
+        "summary": "The conversation is in discovery/clarification mode; confirm intent before moving forward.",
+        "details": [
+          {
+            "question": "Who you may be speaking with",
+            "answer": "Meeting Speaker",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.72,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T14:57:21.644Z"
+      },
+      {
+        "meetingId": "meeting-1773500219314",
+        "cardId": "card-1773500241644-a2de4b",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "Direct answer: acknowledge the question, answer clearly in one sentence, then add one concrete example.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "what is one plus one",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Great question. The short answer is yes in most cases; the practical impact is faster execution with less manual effort.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.72,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T14:57:21.644Z"
+      },
+      {
+        "meetingId": "meeting-1773500219314",
+        "cardId": "card-1773500241645-3b754d",
+        "label": "STRATEGY",
+        "title": "Real-Time Feedback",
+        "summary": "Good pace. Next, ask one focused follow-up question to validate alignment.",
+        "details": [
+          {
+            "question": "Immediate coaching",
+            "answer": "Good pace. Next, ask one focused follow-up question to validate alignment.",
+            "source": "AI Companion"
+          },
+          {
+            "question": "Suggested next line",
+            "answer": "Would you like me to summarize the options and recommend the best next step?",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.74,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T14:57:21.645Z"
+      },
+      {
+        "meetingId": "meeting-1773500219314",
+        "cardId": "card-1773500241645-735133",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T14:57:21.645Z"
+      },
+      {
+        "meetingId": "meeting-1773500219314",
+        "cardId": "card-1773500241645-9cc2e5",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Acknowledge the point and ask a clarifying follow-up question.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T14:57:21.645Z"
+      }
+    ],
+    "meeting-1773500291042": [],
+    "meeting-1773500394591": [
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500422734-a06880",
+        "label": "CONTEXT",
+        "title": "Situation Understanding",
+        "summary": "The conversation is in discovery/clarification mode; confirm intent before moving forward.",
+        "details": [
+          {
+            "question": "Who you may be speaking with",
+            "answer": "Meeting Speaker",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.72,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T15:00:22.734Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500422734-782fe9",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "Likely next question: what is the concrete impact and timeline? Prepare a concise answer with one measurable outcome.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "hello how are you",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "If helpful, we can map this to your exact context and define what success looks like in the first phase.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.68,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T15:00:22.734Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500422734-0cc85d",
+        "label": "STRATEGY",
+        "title": "Real-Time Feedback",
+        "summary": "Good pace. Next, ask one focused follow-up question to validate alignment.",
+        "details": [
+          {
+            "question": "Immediate coaching",
+            "answer": "Good pace. Next, ask one focused follow-up question to validate alignment.",
+            "source": "AI Companion"
+          },
+          {
+            "question": "Suggested next line",
+            "answer": "Would you like me to summarize the options and recommend the best next step?",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.74,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T15:00:22.734Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500422735-ea929d",
+        "label": "STRATEGY",
+        "title": "Live Coaching Suggestion",
+        "summary": "Use an open question, then a quantifying question, then a close question.",
+        "details": [
+          {
+            "question": "Suggested next question",
+            "answer": "If we solved this in 30 days, what key milestone would it unblock first?",
+            "source": "Companion strategy pattern"
+          },
+          {
+            "question": "Current speaker context",
+            "answer": "Meeting Speaker",
+            "source": "Live transcript context"
+          }
+        ],
+        "confidence": 0.78,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T15:00:22.735Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500422735-05be0b",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "Summarize the current priority in one sentence and ask for confirmation.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "hello how are you",
+        "timestamp": "2026-03-14T15:00:22.735Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500427421-de24b6",
+        "label": "CONTEXT",
+        "title": "Situation Understanding",
+        "summary": "The user is asking a basic arithmetic question, likely testing the AI's capabilities or asking a simple query.",
+        "details": [
+          {
+            "question": "Who you may be speaking with",
+            "answer": "AI conversation partner",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T15:00:27.421Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500427422-f5ac89",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "One plus one equals two.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "what is one plus one",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "One plus one is two.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T15:00:27.422Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500427422-50eed2",
+        "label": "STRATEGY",
+        "title": "Real-Time Feedback",
+        "summary": "Acknowledged a direct, simple question.",
+        "details": [
+          {
+            "question": "Immediate coaching",
+            "answer": "Acknowledged a direct, simple question.",
+            "source": "AI Companion"
+          },
+          {
+            "question": "Suggested next line",
+            "answer": "Is there anything else I can help you with?",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "what is one plus one",
+        "timestamp": "2026-03-14T15:00:27.422Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500442619-407631",
+        "label": "CONTEXT",
+        "title": "Situation Understanding",
+        "summary": "The user is asking a general knowledge question.",
+        "details": [
+          {
+            "question": "Who you may be speaking with",
+            "answer": "AI Assistant",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "do you know what color is a lion",
+        "timestamp": "2026-03-14T15:00:42.619Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500442620-c505e8",
+        "label": "CONTEXT",
+        "title": "Instant Answer",
+        "summary": "Lions are typically tawny yellow, which can range from a light yellowish-brown to a darker reddish-brown.",
+        "details": [
+          {
+            "question": "Question detected",
+            "answer": "do you know what color is a lion",
+            "source": "Live transcript"
+          },
+          {
+            "question": "Suggested response",
+            "answer": "Lions are typically a tawny yellow color, which can range from a light yellowish-brown to a darker reddish-brown.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "do you know what color is a lion",
+        "timestamp": "2026-03-14T15:00:42.620Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500442620-99103c",
+        "label": "STRATEGY",
+        "title": "Real-Time Feedback",
+        "summary": "Understood the question.",
+        "details": [
+          {
+            "question": "Immediate coaching",
+            "answer": "Understood the question.",
+            "source": "AI Companion"
+          },
+          {
+            "question": "Suggested next line",
+            "answer": "I'm ready for your next question.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 1,
+        "triggeredBy": "do you know what color is a lion",
+        "timestamp": "2026-03-14T15:00:42.620Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "cardId": "card-1773500442620-2b030a",
+        "label": "STRATEGY",
+        "title": "Live Assistant Cue",
+        "summary": "I can help with that.",
+        "details": [
+          {
+            "question": "How should I use this right now?",
+            "answer": "Say this naturally, then pause and let the prospect respond.",
+            "source": "AI Companion"
+          }
+        ],
+        "confidence": 0.76,
+        "triggeredBy": "do you know what color is a lion",
+        "timestamp": "2026-03-14T15:00:42.620Z"
+      }
+    ]
+  },
+  "transcriptByMeeting": {
+    "meeting-1773499818258": [],
+    "meeting-1773499889100": [
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499912845-1be031",
+        "speaker": "Meeting Speaker",
+        "text": "hello knife for the first application on before",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:51:52.850Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499915605-e398ba",
+        "speaker": "Meeting Speaker",
+        "text": "hello how are you",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:51:55.605Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499920201-fe4bde",
+        "speaker": "Meeting Speaker",
+        "text": "what is 1 + 1",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:52:00.202Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499934154-6b792f",
+        "speaker": "Meeting Speaker",
+        "text": "do you know what 1 plus 1 is",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:52:14.155Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499943792-931fb9",
+        "speaker": "Meeting Speaker",
+        "text": "do you know what animal Barks",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:52:23.795Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499952926-ad84ad",
+        "speaker": "Meeting Speaker",
+        "text": "I need to know what animal works",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:52:32.926Z"
+      },
+      {
+        "meetingId": "meeting-1773499889100",
+        "segmentId": "seg-1773499956297-51992f",
+        "speaker": "Meeting Speaker",
+        "text": "what is a dog",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:52:36.297Z"
+      }
+    ],
+    "meeting-1773500219314": [
+      {
+        "meetingId": "meeting-1773500219314",
+        "segmentId": "seg-1773500241630-110027",
+        "speaker": "Meeting Speaker",
+        "text": "what is one plus one",
+        "isFinal": true,
+        "timestamp": "2026-03-14T14:57:21.630Z"
+      }
+    ],
+    "meeting-1773500291042": [],
+    "meeting-1773500394591": [
+      {
+        "meetingId": "meeting-1773500394591",
+        "segmentId": "seg-1773500417045-063da3",
+        "speaker": "Meeting Speaker",
+        "text": "hello how are you",
+        "isFinal": true,
+        "timestamp": "2026-03-14T15:00:17.052Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "segmentId": "seg-1773500424276-ecd810",
+        "speaker": "Meeting Speaker",
+        "text": "what is one plus one",
+        "isFinal": true,
+        "timestamp": "2026-03-14T15:00:24.276Z"
+      },
+      {
+        "meetingId": "meeting-1773500394591",
+        "segmentId": "seg-1773500440486-e6182e",
+        "speaker": "Meeting Speaker",
+        "text": "do you know what color is a lion",
+        "isFinal": true,
+        "timestamp": "2026-03-14T15:00:40.486Z"
+      }
+    ]
+  },
+  "updatedAt": "2026-03-14T15:00:55.186Z"
+}

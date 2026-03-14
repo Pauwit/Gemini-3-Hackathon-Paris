@@ -30,6 +30,8 @@ const http = require('http');
 const path = require('path');
 const config = require('./config');
 const { analyzeLiveSegment } = require('./services/live-companion');
+const { generateMeetingRecapDocument } = require('./services/meeting-recap');
+const { upsertMeetingRecord } = require('./storage/meetings-store');
 
 // ── Routes ──────────────────────────────────────────────────
 const healthRouter = require('./routes/api-health');
@@ -177,8 +179,18 @@ function handleMeetingStart(ws, payload) {
 function handleMeetingStop(ws, payload) {
   const { meetingId, reason } = payload;
 
+  const snapshot = {
+    meetingId,
+    title: meetingState.title,
+    participants: [...(meetingState.participants || [])],
+    startedAt: meetingState.startedAt,
+    stoppedAt: new Date().toISOString(),
+    transcript: [...(meetingState.transcript || [])],
+    cards: [...(meetingState.cards || [])],
+  };
+
   meetingState.state = 'stopping';
-  meetingState.stoppedAt = new Date().toISOString();
+  meetingState.stoppedAt = snapshot.stoppedAt;
 
   log('info', `Meeting stopping: ${meetingId}`, { reason });
 
@@ -189,7 +201,14 @@ function handleMeetingStop(ws, payload) {
     stoppedAt: meetingState.stoppedAt,
   });
 
-  setTimeout(() => {
+  broadcastToClient(ws, 'pipeline-status', {
+    meetingId,
+    stage: 'analysing',
+    workersActive: ['strategy-agent'],
+    message: 'Generating meeting recap and saving artifacts…',
+  });
+
+  setTimeout(async () => {
     meetingState.state = 'ended';
     broadcastToClient(ws, 'meeting-state', {
       meetingId,
@@ -197,6 +216,52 @@ function handleMeetingStop(ws, payload) {
       startedAt: meetingState.startedAt,
       stoppedAt: meetingState.stoppedAt,
     });
+
+    try {
+      const recapDocument = await generateMeetingRecapDocument({
+        meetingId: snapshot.meetingId,
+        title: snapshot.title,
+        participants: snapshot.participants,
+        transcript: snapshot.transcript,
+        cards: snapshot.cards,
+        generatedAt: snapshot.stoppedAt,
+      });
+
+      const documents = recapDocument ? [recapDocument] : [];
+
+      upsertMeetingRecord({
+        meetingId: snapshot.meetingId,
+        title: snapshot.title,
+        participants: snapshot.participants,
+        startedAt: snapshot.startedAt,
+        stoppedAt: snapshot.stoppedAt,
+        cards: snapshot.cards,
+        transcript: snapshot.transcript,
+        documents,
+      });
+
+      if (recapDocument) {
+        broadcastToClient(ws, 'document', recapDocument);
+      }
+
+      broadcastToClient(ws, 'pipeline-status', {
+        meetingId,
+        stage: 'done',
+        workersActive: [],
+        message: 'Meeting recap saved.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save meeting recap';
+      log('error', 'Meeting recap persistence failed', { meetingId, error: message });
+
+      broadcastToClient(ws, 'pipeline-status', {
+        meetingId,
+        stage: 'error',
+        workersActive: [],
+        message: 'Meeting ended, but recap saving failed.',
+      });
+    }
+
     log('info', `Meeting ended: ${meetingId}`);
   }, 500);
 }
