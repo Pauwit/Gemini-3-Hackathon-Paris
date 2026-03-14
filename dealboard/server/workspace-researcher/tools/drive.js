@@ -77,11 +77,21 @@ async function execute(args, isDryRun = false) {
     };
   }
 
-  // TODO: Integrate actual gws CLI or Drive API call here.
-  
+  // Use the real drive worker
+  const { searchDocs } = require('../../workers/drive-worker');
+  const result = await searchDocs(query, { maxResults: limit });
+  if (result.error) {
+    return { status: 'ERROR', message: result.error };
+  }
   return {
-    status: "ERROR",
-    message: "Le connecteur Drive en direct n'est pas encore implémenté via l'API, veuillez utiliser les données partielles."
+    status: 'SUCCESS',
+    documents: (result.raw || []).map(d => ({
+      id:           d.id,
+      title:        d.name || d.title,
+      lastModified: d.modifiedTime,
+      snippet:      d.content?.substring(0, 300) || d.snippet || '',
+    })),
+    summary: result.answer,
   };
 }
 

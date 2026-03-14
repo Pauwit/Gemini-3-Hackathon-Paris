@@ -36,9 +36,12 @@ const config = require('./config');
 const healthRouter = require('./routes/api-health');
 const meetingsRouter = require('./routes/api-meetings');
 const memoryRouter = require('./routes/api-memory');
+const oauthRouter = require('./routes/oauth');
 const { analyzeTranscript } = require('./agents/listener-agent');
 const { processResearchRequest } = require('./workspace-researcher/index');
 const { fuseWorkerResults } = require('./agents/analyser-agent');
+const { generateDocuments } = require('./agents/strategy-agent');
+const { updateMemory }     = require('./agents/memory-agent');
 const insightsRouter = require('./routes/api-insights');
 
 // ── Async Brain ──────────────────────────────────────────────
@@ -56,6 +59,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/memory', memoryRouter);
 app.use('/api', insightsRouter);
+app.use('/auth', oauthRouter);
 
 // 404 fallback for unmatched REST routes
 app.use((req, res) => {
@@ -78,6 +82,11 @@ const meetingState = {
   context: '',
   platform: 'Google Meet',
 };
+
+// Per-meeting accumulators (reset on meeting-start)
+const activeMeetingCards = [];
+const activeMeetingTranscripts = [];
+const activeMeetingDocuments = {}; // documentId → document
 
 // ── WebSocket Connection Handler ─────────────────────────────
 wss.on('connection', (ws, req) => {
@@ -160,6 +169,11 @@ function handleMeetingStart(ws, payload) {
   meetingState.context = context || '';
   meetingState.platform = 'Google Meet';
 
+  // Reset per-meeting accumulators
+  activeMeetingCards.length = 0;
+  activeMeetingTranscripts.length = 0;
+  Object.keys(activeMeetingDocuments).forEach(k => delete activeMeetingDocuments[k]);
+
   log('info', `Meeting starting: ${title}`, { meetingId, platform: meetingState.platform });
 
   broadcastToClient(ws, 'meeting-state', {
@@ -197,6 +211,34 @@ function handleMeetingStop(ws, payload) {
     stoppedAt: meetingState.stoppedAt,
   });
 
+  // Compute duration in minutes
+  const startMs = meetingState.startedAt ? new Date(meetingState.startedAt).getTime() : Date.now();
+  const durationMins = Math.round((Date.now() - startMs) / 60000) || 1;
+
+  // Persist meeting record to data store
+  const meetingRecord = {
+    id:            meetingId,
+    title:         meetingState.title,
+    date:          meetingState.startedAt,
+    duration:      durationMins,
+    participants:  meetingState.participants,
+    cardCount:     activeMeetingCards.length,
+    documentCount: Object.keys(activeMeetingDocuments).length,
+    cards:         [...activeMeetingCards],
+    transcript:    [...activeMeetingTranscripts],
+    documents:     Object.values(activeMeetingDocuments),
+    endedAt:       meetingState.stoppedAt,
+  };
+  dataStore.saveMeeting(meetingRecord);
+  dataStore.saveToDisk().catch(err => log('error', 'Failed to persist meeting', { error: err.message }));
+  log('info', `Meeting saved to store: ${meetingId}`, { cards: activeMeetingCards.length });
+
+  // Trigger memory extraction async (non-blocking)
+  updateMemory({
+    type: 'meeting-ended',
+    data: meetingRecord,
+  }).catch(err => log('warn', 'Memory agent failed', { error: err.message }));
+
   setTimeout(() => {
     meetingState.state = 'ended';
     broadcastToClient(ws, 'meeting-state', {
@@ -219,8 +261,22 @@ function handleAudioChunk(ws, payload) {
 }
 
 async function handleTextInput(ws, payload) {
-  const { text, meetingId } = payload;
+  const { text, meetingId, speaker, isFinal, segmentId } = payload;
   log('info', `Text input received`, { meetingId, text: text.substring(0, 80) });
+
+  // Accumulate transcript segment
+  const segment = {
+    meetingId:  meetingId || meetingState.meetingId,
+    segmentId:  segmentId || `seg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    speaker:    speaker || 'Speaker',
+    text,
+    isFinal:    isFinal !== false,
+    timestamp:  new Date().toISOString(),
+  };
+  activeMeetingTranscripts.push(segment);
+
+  // Broadcast transcript segment to frontend
+  broadcastToClient(ws, 'transcript', segment);
 
   // 1. Emit pipeline status - Listener
   broadcastToClient(ws, 'pipeline-status', {
@@ -261,10 +317,12 @@ async function handleTextInput(ws, payload) {
       // 6. Fuse worker results into an AI Card
       const cards = await fuseWorkerResults(workerResults, text, meetingState);
       
-      // 7. Stream cards to clients
+      // 7. Stream cards to clients and accumulate
       for (const card of cards) {
         // Enforce the triggerSegmentId for UI alignment if provided by the client
         card.triggerSegmentId = payload.segmentId || null;
+        card.meetingId = meetingId || meetingState.meetingId;
+        activeMeetingCards.push(card);
         broadcastToClient(ws, 'card', card);
         log('info', `Broadcasted Card: ${card.label}`, { summary: card.summary });
       }
@@ -285,7 +343,7 @@ async function handleTextInput(ws, payload) {
   }
 }
 
-function handleGenerateDocuments(ws, payload) {
+async function handleGenerateDocuments(ws, payload) {
   const { meetingId, types } = payload;
   log('info', `Generate documents requested`, { meetingId, types });
 
@@ -293,32 +351,61 @@ function handleGenerateDocuments(ws, payload) {
     meetingId,
     stage: 'analysing',
     workersActive: ['strategy-agent'],
-    message: `Generating ${types.join(', ')}...`,
+    message: `Generating ${types.join(', ')} with Gemini Pro…`,
   });
 
-  // TODO: Route to strategy-agent
-  // Placeholder: send a stub document after delay
-  setTimeout(() => {
-    types.forEach((docType, i) => {
-      setTimeout(() => {
-        broadcastToClient(ws, 'document', {
-          meetingId,
-          documentId: `doc-${Date.now()}-${i}`,
-          type: docType,
-          title: `${docType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
-          content: `# ${docType}\n\n_Document generation not yet implemented. Strategy agent TODO._\n`,
-          generatedAt: new Date().toISOString(),
-        });
-      }, i * 300);
-    });
+  // Build meeting data from accumulated state
+  const storedMeeting = dataStore.getMeeting(meetingId);
+  const meetingData = {
+    meetingId,
+    title:        storedMeeting?.title || meetingState.title || 'Meeting',
+    participants: storedMeeting?.participants || meetingState.participants || [],
+    startedAt:    storedMeeting?.date || meetingState.startedAt,
+    transcript:   storedMeeting?.transcript?.length > 0
+                    ? storedMeeting.transcript
+                    : [...activeMeetingTranscripts],
+    cards:        storedMeeting?.cards?.length > 0
+                    ? storedMeeting.cards
+                    : [...activeMeetingCards],
+  };
+
+  try {
+    const documents = await generateDocuments(meetingData, types);
+
+    for (const doc of documents) {
+      activeMeetingDocuments[doc.documentId] = doc;
+      broadcastToClient(ws, 'document', doc);
+      log('info', `Document sent: ${doc.type}`);
+    }
+
+    // Persist documents to the stored meeting record
+    if (storedMeeting) {
+      storedMeeting.documents = Object.values(activeMeetingDocuments);
+      storedMeeting.documentCount = storedMeeting.documents.length;
+      dataStore.saveMeeting(storedMeeting);
+      dataStore.saveToDisk().catch(() => {});
+    }
 
     broadcastToClient(ws, 'pipeline-status', {
       meetingId,
       stage: 'done',
       workersActive: [],
-      message: 'Documents generated',
+      message: `${documents.length} documents ready`,
     });
-  }, 1000);
+  } catch (err) {
+    log('error', `Strategy agent failed`, { error: err.message });
+    broadcastToClient(ws, 'pipeline-status', {
+      meetingId,
+      stage: 'error',
+      workersActive: [],
+      message: 'Document generation failed',
+    });
+    broadcastToClient(ws, 'error', {
+      code: 'STRATEGY_AGENT_ERROR',
+      message: err.message,
+      recoverable: true,
+    });
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────

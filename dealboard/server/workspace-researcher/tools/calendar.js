@@ -84,11 +84,23 @@ async function execute(args, isDryRun = false) {
     };
   }
 
-  // TODO: Integrate actual gws CLI or Calendar API call here.
-  
+  // Use the real calendar worker
+  const { searchCalendarEvents } = require('../../workers/calendar-worker');
+  const result = await searchCalendarEvents(query || '', { timeMin, timeMax, maxResults: limit });
+  if (result.error) {
+    return { status: 'ERROR', message: result.error };
+  }
   return {
-    status: "ERROR",
-    message: "Le connecteur Calendar en direct n'est pas encore implémenté via l'API, veuillez utiliser les données partielles."
+    status: 'SUCCESS',
+    events: (result.raw || []).map(e => ({
+      id:          e.id,
+      title:       e.title || e.summary,
+      startTime:   e.start,
+      endTime:     e.end,
+      attendees:   e.attendees || [],
+      description: e.description?.substring(0, 200) || '',
+    })),
+    summary: result.answer,
   };
 }
 

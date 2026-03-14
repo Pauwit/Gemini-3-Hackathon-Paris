@@ -27,36 +27,116 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const config = require('../config');
+const { generateContent } = require('../tools/gemini-client');
 
-// TODO: Import gemini-client when implemented
-// const { generateContent } = require('../tools/gemini-client');
+// Load system prompt once
+let _systemPrompt = null;
+function getSystemPrompt() {
+  if (!_systemPrompt) {
+    const promptPath = path.join(__dirname, '..', config.PROMPTS_DIR, 'strategy-prompt.txt');
+    try {
+      _systemPrompt = fs.readFileSync(promptPath, 'utf8');
+    } catch {
+      _systemPrompt = 'You are a professional sales strategist. Generate meeting documents.';
+    }
+  }
+  return _systemPrompt;
+}
+
+/** Human-readable title for each document type */
+const DOC_TITLES = {
+  'summary':         'Meeting Summary',
+  'follow-up-email': 'Follow-Up Email',
+  'strategy-brief':  'Strategy Brief',
+  'decision-log':    'Decision Log',
+};
+
+/**
+ * buildMeetingContext — formats meeting data into a readable context string
+ */
+function buildMeetingContext(meetingData) {
+  const { meetingId, title, participants, transcript, cards, startedAt } = meetingData;
+
+  const transcriptText = Array.isArray(transcript) && transcript.length > 0
+    ? transcript.map(s => `[${s.speaker || 'Unknown'}]: ${s.text}`).join('\n')
+    : 'No transcript available.';
+
+  const cardsText = Array.isArray(cards) && cards.length > 0
+    ? cards.map(c => `- [${c.label}] ${c.title}: ${c.summary}`).join('\n')
+    : 'No intelligence cards generated.';
+
+  return `
+MEETING METADATA:
+- ID: ${meetingId}
+- Title: ${title || 'Untitled Meeting'}
+- Participants: ${Array.isArray(participants) ? participants.join(', ') : 'Unknown'}
+- Date: ${startedAt || new Date().toISOString()}
+
+TRANSCRIPT:
+${transcriptText}
+
+INTELLIGENCE CARDS GENERATED DURING MEETING:
+${cardsText}
+`.trim();
+}
 
 /**
  * generateDocuments
  * Generates post-meeting documents from full meeting data.
  *
  * @param {object} meetingData - Complete meeting record
- *   { meetingId, title, participants, transcript[], cards[], memoryContext }
+ *   { meetingId, title, participants, transcript[], cards[], startedAt }
  * @param {string[]} documentTypes - Types to generate
- *   ('summary' | 'follow-up-email' | 'strategy-brief' | 'decision-log')[]
- * @returns {Promise<Document[]>} Array of generated Document objects
- *
- * @example
- * const docs = await generateDocuments(
- *   { meetingId: 'meeting-001', transcript: [...], cards: [...] },
- *   ['summary', 'follow-up-email']
- * );
+ * @returns {Promise<object[]>} Array of Document objects
  */
 async function generateDocuments(meetingData, documentTypes) {
-  // TODO: Load strategy-prompt.txt
-  // TODO: Build comprehensive meeting context string
-  // TODO: For each documentType, call Gemini Pro with appropriate sub-prompt
-  // TODO: Parse markdown response into Document objects
-  // TODO: Return Document array
+  const systemPrompt = getSystemPrompt();
+  const meetingContext = buildMeetingContext(meetingData);
+  const documents = [];
 
-  console.log('[strategy-agent] generateDocuments called — TODO: implement', { documentTypes });
-  return [];
+  for (const docType of documentTypes) {
+    const prompt = `${systemPrompt}
+
+${meetingContext}
+
+---
+TASK: Generate a "${docType}" document for this meeting.
+Document type instructions are defined above in DOCUMENT TYPES.
+Output ONLY the markdown content for this document. No JSON, no code blocks around it, just clean markdown.`;
+
+    try {
+      console.log(`[strategy-agent] Generating ${docType}...`);
+      const content = await generateContent(config.STRATEGY_MODEL, prompt, {
+        systemInstruction: systemPrompt,
+      });
+
+      documents.push({
+        documentId: `doc-${meetingData.meetingId}-${docType}-${Date.now()}`,
+        meetingId:   meetingData.meetingId,
+        type:        docType,
+        title:       DOC_TITLES[docType] || docType,
+        content:     typeof content === 'string' ? content : JSON.stringify(content),
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error(`[strategy-agent] Failed to generate ${docType}:`, err.message);
+      // Return a fallback placeholder so the UI doesn't break
+      documents.push({
+        documentId: `doc-${meetingData.meetingId}-${docType}-${Date.now()}`,
+        meetingId:   meetingData.meetingId,
+        type:        docType,
+        title:       DOC_TITLES[docType] || docType,
+        content:     `# ${DOC_TITLES[docType] || docType}\n\n_Document generation failed. Please try again._`,
+        generatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  console.log(`[strategy-agent] Generated ${documents.length}/${documentTypes.length} documents.`);
+  return documents;
 }
 
 module.exports = { generateDocuments };

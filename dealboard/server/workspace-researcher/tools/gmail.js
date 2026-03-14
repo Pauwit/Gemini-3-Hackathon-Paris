@@ -73,14 +73,22 @@ async function execute(args, isDryRun = false) {
     };
   }
 
-  // TODO: Integrate actual gws CLI or Gmail API call here.
-  // For the hackathon context, if the gws wrapper exists, it would be called via exec/spawn 
-  // and the output parsed. For now, we fallback to a structured "not implemented" real response
-  // or use the worker-orchestrator's internal tools.
-  
+  // Use the real gmail worker (handles both mock and live Google API)
+  const { searchEmails } = require('../../workers/gmail-worker');
+  const result = await searchEmails(query, limit);
+  if (result.error) {
+    return { status: 'ERROR', message: result.error };
+  }
   return {
-    status: "ERROR",
-    message: "Le connecteur Gmail en direct n'est pas encore implémenté via l'API, veuillez utiliser les données partielles."
+    status: 'SUCCESS',
+    emails: (result.raw || []).map(e => ({
+      id:      e.id,
+      date:    e.date,
+      from:    e.from,
+      subject: e.subject,
+      snippet: e.snippet || e.body?.substring(0, 200) || '',
+    })),
+    summary: result.answer,
   };
 }
 

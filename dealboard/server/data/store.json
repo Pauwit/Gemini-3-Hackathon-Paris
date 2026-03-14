@@ -180,7 +180,7 @@
         "location": "Internal"
       }
     ],
-    "lastScanTime": "2026-03-14T12:53:30.984Z"
+    "lastScanTime": "2026-03-14T14:07:49.989Z"
   },
   "meetings": [],
   "insights": {
@@ -190,14 +190,15 @@
         "name": "Thomas Martin",
         "title": "CTO",
         "company": "AcmeCorp",
-        "summary": "Thomas is the technical gatekeeper for AcmeCorp, highly concerned about unpredictable infrastructure costs and alert fatigue from their current vendor. He has a non-negotiable requirement for ISO 27001 certification before contract finalization.",
+        "summary": "Thomas is the CTO at AcmeCorp and serves as a key technical gatekeeper for this deal. He has raised hard requirements regarding compliance and pricing, indicating a detailed and cost-conscious approach.",
         "keyConcerns": [
-          "ISO 27001 certification (hard requirement)",
-          "Unpredictable per-host pricing model",
-          "Datadog alert fatigue"
+          "ISO 27001 certification (non-negotiable)",
+          "Unpredictable per-host pricing model (Datadog bill tripled)",
+          "Alert fatigue from current monitoring solution",
+          "Kubernetes native monitoring"
         ],
-        "communicationStyle": "Direct and formal, clearly stating requirements and concerns via email.",
-        "recentActivity": "Raised a hard requirement for ISO 27001 certification on March 10th and expressed significant concerns about per-host pricing on March 8th.",
+        "communicationStyle": "Direct and formal, clearly stating requirements and objections via email.",
+        "recentActivity": "Raised a non-negotiable ISO 27001 requirement on March 10th and expressed significant pricing concerns on March 8th.",
         "riskLevel": "medium",
         "lastContact": "2026-03-10T09:15:00Z"
       },
@@ -206,31 +207,41 @@
         "name": "Sarah Chen",
         "title": "VP Eng",
         "company": "AcmeCorp",
-        "summary": "Sarah is identified as the real decision-maker and budget approver for infrastructure tooling at AcmeCorp. She is reportedly frustrated with Datadog's support quality.",
+        "summary": "Sarah is the VP Engineering at AcmeCorp and the true decision-maker for this deal, controlling the budget for infrastructure tooling. She is noted to be frustrated with Datadog's support quality.",
         "keyConcerns": [
-          "Datadog support quality"
+          "Datadog's support quality"
         ],
-        "communicationStyle": "Not directly observed in recent emails; information gathered from internal intelligence.",
-        "recentActivity": "Identified as the key decision-maker by Mike Torres on March 6th. Attended Q4 2025 meeting where Datadog frustrations were discussed.",
+        "communicationStyle": "Not directly observed in recent emails, but internal intelligence suggests a focus on operational efficiency and vendor support.",
+        "recentActivity": "Identified as the real decision-maker and budget approver in an internal email on March 6th; attended Q4 2025 meeting.",
         "riskLevel": "low",
-        "lastContact": "2026-01-10T14:00:00Z"
+        "lastContact": "2026-03-06T16:45:00Z"
       }
     ],
     "projectUpdates": [
       {
         "id": "project-001",
         "name": "AcmeCorp Deal",
-        "status": "at_risk",
-        "summary": "AcmeCorp is evaluating our solution to replace Datadog, driven by concerns over unpredictable costs and alert fatigue. A hard requirement for ISO 27001 certification has been raised, and while the certificate was sent, confirmation of acceptance is pending. A technical demo is scheduled for March 20th.",
+        "status": "on_track",
+        "summary": "The AcmeCorp deal is progressing, with key technical and compliance concerns being actively addressed. A technical demo is scheduled, and a flat-rate pricing proposal has been created to address cost predictability issues. The client is frustrated with their incumbent vendor, Datadog.",
         "keyMilestones": [
           {
-            "date": "2026-01-10",
-            "event": "AcmeCorp Q4 2025 Meeting Notes",
+            "date": "2026-03-08",
+            "event": "Thomas Martin raises pricing concerns",
             "status": "completed"
           },
           {
-            "date": "2026-03-07",
-            "event": "Technical Demo Confirmed",
+            "date": "2026-03-10",
+            "event": "Thomas Martin raises ISO 27001 requirement",
+            "status": "completed"
+          },
+          {
+            "date": "2026-03-11",
+            "event": "ISO 27001 Certificate sent to AcmeCorp",
+            "status": "completed"
+          },
+          {
+            "date": "2026-03-12",
+            "event": "AcmeCorp Flat-Rate Pricing Proposal v2 created",
             "status": "completed"
           },
           {
@@ -244,9 +255,9 @@
             "status": "upcoming"
           }
         ],
-        "dealValue": "Proposed $22,000/month (Current Datadog spend ~$38,000/month)",
+        "dealValue": "$22,000/month",
         "competitor": "Datadog",
-        "winProbability": 65,
+        "winProbability": 75,
         "lastUpdated": "2026-03-12T16:00:00Z"
       }
     ],
@@ -254,50 +265,41 @@
       {
         "id": "advice-001",
         "priority": "critical",
-        "title": "Confirm ISO 27001 Acceptance with Thomas Martin",
-        "advice": "Explicitly follow up with Thomas Martin to confirm his security team has received and formally accepted the ISO 27001 certificate and other compliance documents sent on March 11th.",
-        "rationale": "Thomas stated on March 10th that ISO 27001 certification is a 'non-negotiable' hard requirement. While our compliance team sent the documents, explicit confirmation of acceptance is crucial to remove this blocker.",
-        "action": "Email Thomas Martin to confirm receipt and acceptance of the ISO 27001 certificate and compliance package.",
-        "deadline": "2026-03-15"
+        "title": "Confirm ISO 27001 Certificate Receipt",
+        "advice": "Follow up immediately with Thomas Martin to confirm he received and reviewed the ISO 27001 certificate sent on March 11th. This was a non-negotiable requirement.",
+        "rationale": "Thomas explicitly stated ISO 27001 certification is a 'hard requirement' and 'non-negotiable' (March 10th email). Our company has provided the certificate, but confirmation of receipt is vital to remove this blocker.",
+        "action": "Email Thomas Martin directly to confirm receipt and ask if he has any questions about the ISO 27001 certificate.",
+        "deadline": "2026-03-13"
       },
       {
         "id": "advice-002",
         "priority": "high",
-        "title": "Address Flat-Rate Pricing Proposal with Thomas",
-        "advice": "Present the new Flat-Rate Pricing Proposal (v2) to Thomas Martin, highlighting how it directly resolves his concern about unpredictable per-host costs and offers significant savings compared to their current Datadog spend.",
-        "rationale": "Thomas explicitly requested a flat-rate model in his March 8th email due to concerns about scaling costs. The March 12th proposal directly addresses this, and proactive communication can mitigate pricing as a concern before the demo.",
-        "action": "Schedule a brief call or send a targeted email to Thomas Martin to walk him through the Flat-Rate Pricing Proposal (v2).",
+        "title": "Emphasize Flat-Rate Pricing in Demo",
+        "advice": "During the upcoming technical demo, ensure the Solutions Engineer highlights and clearly explains the new 'Enterprise Flat-Rate' pricing model from Proposal v2, contrasting it with Datadog's unpredictable costs.",
+        "rationale": "Thomas Martin expressed significant concern about unpredictable per-host pricing, citing Datadog's bill tripling (March 8th email). The flat-rate proposal directly addresses this major pain point.",
+        "action": "Brief the Solutions Engineer on the AcmeCorp Flat-Rate Pricing Proposal v2 and its benefits, specifically focusing on cost predictability ahead of the March 20th demo.",
         "deadline": "2026-03-17"
       },
       {
         "id": "advice-003",
         "priority": "high",
-        "title": "Engage Sarah Chen (VP Eng) on Datadog Pain Points",
-        "advice": "During the upcoming technical demo, ensure a direct engagement with Sarah Chen (AcmeCorp VP Eng). Focus messaging on how our solution specifically alleviates Datadog's reported support quality issues and Thomas's stated alert fatigue.",
-        "rationale": "Mike Torres' internal email on March 6th confirmed Sarah Chen is the 'real decision-maker' and 'controls the budget,' with frustration over Datadog's support quality. Addressing her specific pain points directly is key to winning the deal.",
-        "action": "Prepare specific talking points for Sarah Chen (VP Eng) addressing Datadog support and alert fatigue for the March 20th demo.",
-        "deadline": "2026-03-20"
+        "title": "Address Datadog Support Quality for VP Eng",
+        "advice": "Incorporate messaging about our superior support and professional migration services into discussions, specifically targeting Sarah Chen (VP Eng). This should address her frustration with Datadog's support.",
+        "rationale": "Internal intel confirms Sarah Chen, the budget decision-maker, is 'frustrated with Datadog's support quality' (Mike Torres, March 6th email). Highlighting our support can be a key differentiator.",
+        "action": "Prepare specific talking points about our customer support and migration success stories for the technical demo and any follow-up conversations with Sarah Chen.",
+        "deadline": "2026-03-17"
       },
       {
         "id": "advice-004",
         "priority": "medium",
-        "title": "Prepare for Internal Deal Strategy Sync",
-        "advice": "Come prepared for the March 17th internal strategy sync with updates on Thomas Martin's feedback regarding ISO 27001 and the flat-rate pricing. Be ready to discuss the pricing floor and decision timeline.",
-        "rationale": "The internal sync is explicitly for aligning on negotiation strategy before the demo. Having all client feedback and a clear stance on pricing and compliance will ensure a cohesive approach.",
-        "action": "Consolidate all recent client feedback, review the Flat-Rate Pricing Proposal, and confirm the ISO certification status for the internal strategy meeting.",
+        "title": "Showcase Intelligent Alerting",
+        "advice": "Ensure the technical demo on March 20th prominently features and deep-dives into our intelligent alerting capabilities, explicitly demonstrating how it mitigates 'alert fatigue'.",
+        "rationale": "Alert fatigue with '400+ alerts/day' is a 'major pain point' for AcmeCorp (Q4 2025 Meeting Notes) and Thomas Martin specifically requested to see 'alert noise' solutions in the demo.",
+        "action": "Instruct the Solutions Engineer to prepare a detailed demonstration of intelligent alerting, specifically contrasting it with common Datadog alert fatigue scenarios.",
         "deadline": "2026-03-17"
-      },
-      {
-        "id": "advice-005",
-        "priority": "medium",
-        "title": "Highlight Migration Ease, Cost Savings, and EU Residency",
-        "advice": "During the upcoming demo and subsequent discussions, explicitly emphasize our seamless migration process from Datadog, the significant monthly cost savings ($16,000/month), and robust EU data residency guarantees.",
-        "rationale": "The Datadog Battlecard indicates 'switching is too much work' is a common objection, which our company can counter. The $22,000/month proposal is a significant saving from their ~$38,000/month Datadog spend, and EU data residency is a key requirement (GDPR audit, Frankfurt location).",
-        "action": "Incorporate clear talking points about 2-week migration, $16,000/month savings, and EU data residency into the March 20th demo script.",
-        "deadline": "2026-03-20"
       }
     ],
-    "lastGeneratedAt": "2026-03-14T12:53:52.809Z"
+    "lastGeneratedAt": "2026-03-14T14:08:08.164Z"
   },
   "chat": [
     {
@@ -313,7 +315,7 @@
   ],
   "meta": {
     "createdAt": "2026-03-14T12:45:16.001Z",
-    "lastUpdatedAt": "2026-03-14T12:53:52.809Z",
-    "totalScans": 3
+    "lastUpdatedAt": "2026-03-14T14:08:08.164Z",
+    "totalScans": 10
   }
 }

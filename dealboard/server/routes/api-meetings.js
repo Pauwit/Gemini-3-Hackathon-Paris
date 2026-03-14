@@ -29,6 +29,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const config = require('../config');
+const dataStore = require('../async/data-store');
 
 // Lazy-load mock data
 let _mockData = null;
@@ -67,8 +68,16 @@ router.get('/', (req, res) => {
       meetings: mockData.meetings || [],
     });
   }
-  // TODO: Query meeting storage
-  res.json({ success: true, meetings: [] });
+  const meetings = dataStore.getMeetingsList().map(m => ({
+    id:            m.id,
+    title:         m.title,
+    date:          m.date,
+    duration:      m.duration,
+    participants:  m.participants,
+    cardCount:     m.cardCount || 0,
+    documentCount: m.documentCount || 0,
+  }));
+  res.json({ success: true, meetings });
 });
 
 /**
@@ -84,8 +93,8 @@ router.get('/:meetingId/documents', (req, res) => {
       documents: mockData.documents || [],
     });
   }
-  // TODO: Query document storage by meetingId
-  res.json({ success: true, documents: [] });
+  const meeting = dataStore.getMeeting(meetingId);
+  res.json({ success: true, documents: meeting?.documents || [] });
 });
 
 /**
@@ -101,8 +110,8 @@ router.get('/:meetingId/cards', (req, res) => {
       cards: mockData.cards || [],
     });
   }
-  // TODO: Query card storage by meetingId
-  res.json({ success: true, cards: [] });
+  const meeting = dataStore.getMeeting(meetingId);
+  res.json({ success: true, cards: meeting?.cards || [] });
 });
 
 /**
@@ -117,8 +126,8 @@ router.get('/:meetingId/transcript', (req, res) => {
       segments: getMockTranscript(),
     });
   }
-  // TODO: Query transcript storage by meetingId
-  res.json({ success: true, segments: [] });
+  const meeting = dataStore.getMeeting(meetingId);
+  res.json({ success: true, segments: meeting?.transcript || [] });
 });
 
 module.exports = router;
