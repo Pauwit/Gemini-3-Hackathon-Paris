@@ -1,582 +1,1027 @@
-# DealBoard AI Companion — Protocol Specification v1.0
+# DEALBOARD — FRONTEND ↔ BACKEND PROTOCOL SPECIFICATION
 
-> **This file is the contract between the frontend team and the backend team.**
-> Neither side may deviate from this spec without mutual agreement and a version bump.
-> When in doubt, check here first.
+> **PURPOSE**: This document is the **binding contract** between the Frontend team (Next.js dashboard) and the Backend team (Node.js server). Both teams MUST implement exactly what is described here. Any AI generating code for either side MUST read this section and follow it to the letter. No improvisation on message formats, field names, endpoints, or WebSocket event types.
+
+> **RULE**: If a field is marked `required`, it MUST always be present. If marked `optional`, it MAY be omitted (but the receiving side MUST handle its absence). If a field has a fixed set of values (enum), no other values are allowed.
 
 ---
 
-## Section 1: Transport Layer
+## 1. TRANSPORT LAYER
 
-### 1.1 Endpoints
+The frontend and backend communicate through **two channels**:
 
-| Protocol | URL | Purpose |
-|----------|-----|---------|
-| WebSocket | `ws://localhost:3001/ws` | All real-time bidirectional communication |
-| REST HTTP | `http://localhost:3001/api/*` | Historical data, health, one-shot queries |
+| Channel | Protocol | Purpose |
+|---------|----------|---------|
+| WebSocket | `ws://` or `wss://` | All real-time bidirectional data: audio, text, cards, documents, vision, meeting lifecycle |
+| REST HTTP | `http://` or `https://` | Historical data retrieval, health check, configuration |
 
-**Single WebSocket endpoint** — all real-time message types share `/ws`. There is no per-feature socket.
+### 1.1 — Connection Details
 
-### 1.2 WebSocket Message Envelope
+| Setting | Default | Env Variable (Frontend) | Env Variable (Backend) |
+|---------|---------|------------------------|----------------------|
+| Backend HTTP port | `3001` | `NEXT_PUBLIC_API_URL=http://localhost:3001` | `PORT=3001` |
+| WebSocket URL | `ws://localhost:3001/ws` | `NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws` | (same port, path `/ws`) |
 
-Every WebSocket message in **both directions** MUST use this envelope:
+**IMPORTANT**: There is **ONE single WebSocket endpoint** at `/ws`. All message types flow through this single connection. The backend does NOT expose multiple WebSocket paths (`/audio`, `/cards`, `/vision`). Message routing is handled by the `type` field inside each message.
+
+---
+
+## 2. WEBSOCKET PROTOCOL
+
+### 2.1 — Message Envelope
+
+Every WebSocket message (both directions) is a **JSON string** with this structure:
 
 ```json
 {
-  "type": "string",
-  "payload": { },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  "type": "<MESSAGE_TYPE>",
+  "payload": { ... },
+  "timestamp": "<ISO 8601 string>"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | YES | Message type identifier (see sections 2 and 3) |
-| `payload` | object | YES | Type-specific payload (see schemas below) |
-| `timestamp` | ISO8601 string | YES | Sender-side timestamp |
+| `type` | `string` | **YES** | One of the defined message types below. Case-sensitive, lowercase with hyphens. |
+| `payload` | `object` | **YES** | Message-specific data. Structure depends on `type`. |
+| `timestamp` | `string` | **YES** | ISO 8601 UTC timestamp of when the message was created. Example: `"2026-03-14T10:30:00.000Z"` |
 
-### 1.3 Unknown Message Types
-
-**Both sides MUST silently ignore unknown message types.** This allows either side to add new message types without breaking the other. Never throw an error on receipt of an unrecognized `type`.
-
-### 1.4 REST Response Envelope
-
-All REST responses use this shape:
-
-```json
-{ "success": true, ...data }
-```
-or on error:
-```json
-{ "success": false, "error": { "code": "ERROR_CODE", "message": "Human readable" } }
-```
+**CRITICAL**: Both sides MUST ignore unknown `type` values silently (no crash, no error). This allows future extensions without breaking existing code.
 
 ---
 
-## Section 2: Client → Server WebSocket Messages
+### 2.2 — Messages: Frontend → Backend (Client sends)
 
-### `audio-chunk`
-
-Streaming audio data from the browser's microphone.
+#### `audio-chunk`
+Sends a raw PCM audio chunk from the user's microphone.
 
 ```json
 {
   "type": "audio-chunk",
   "payload": {
-    "data": "base64encodedPCM...",
+    "data": "<base64-encoded PCM audio>",
     "sampleRate": 16000,
-    "channels": 1,
-    "chunkIndex": 42
+    "encoding": "pcm-s16le"
   },
-  "timestamp": "2024-01-15T10:30:00.250Z"
+  "timestamp": "2026-03-14T10:30:00.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `data` | string (base64) | Raw PCM audio data encoded as base64 |
-| `sampleRate` | number | Sample rate in Hz — MUST be 16000 for Gemini Live |
-| `channels` | number | Channel count — MUST be 1 (mono) |
-| `chunkIndex` | number | Sequential chunk counter starting from 0 |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.data` | `string` | **YES** | Base64-encoded PCM audio. 250ms chunks at 16kHz 16-bit mono. |
+| `payload.sampleRate` | `number` | **YES** | Always `16000`. |
+| `payload.encoding` | `string` | **YES** | Always `"pcm-s16le"`. |
 
-### `text-input`
+---
 
-Manual text input from the user (alternative to audio).
+#### `text-input`
+Sends transcribed text from the browser's Web Speech API (fallback mode when Gemini Live API is unavailable).
 
 ```json
 {
   "type": "text-input",
   "payload": {
-    "text": "What are our pricing advantages over Datadog?",
-    "meetingId": "meeting-001"
+    "text": "We've been evaluating Datadog for our infrastructure",
+    "isFinal": true,
+    "speaker": "prospect"
   },
-  "timestamp": "2024-01-15T10:30:15.000Z"
+  "timestamp": "2026-03-14T10:30:05.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `text` | string | User's typed input |
-| `meetingId` | string | Active meeting identifier |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.text` | `string` | **YES** | The transcribed text segment. |
+| `payload.isFinal` | `boolean` | **YES** | `true` if this is a final recognition result. `false` if interim (still being refined by Speech API). Backend SHOULD only process `isFinal: true` messages through the Listener Agent. |
+| `payload.speaker` | `string` | Optional | `"prospect"`, `"us"`, or `"unknown"`. If omitted, backend treats as `"unknown"`. |
 
-### `meeting-start`
+---
 
-Initiates a new meeting session.
+#### `meeting-start`
+Signals that the user has clicked "Start Meeting" on the dashboard.
 
 ```json
 {
   "type": "meeting-start",
   "payload": {
-    "meetingId": "meeting-001",
-    "title": "AcmeCorp Q1 Sales Review with TechVentures",
-    "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"],
-    "context": "Initial sales call for enterprise monitoring solution"
+    "meetingTitle": "AcmeCorp Q1 Review",
+    "participants": ["Thomas Martin", "Sarah Chen"]
   },
-  "timestamp": "2024-01-15T10:00:00.000Z"
+  "timestamp": "2026-03-14T10:00:00.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `meetingId` | string | Client-generated unique ID for this meeting |
-| `title` | string | Human-readable meeting title |
-| `participants` | string[] | List of participant names |
-| `context` | string | Brief description of meeting purpose |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.meetingTitle` | `string` | Optional | Human-readable meeting name. Default: `"Untitled Meeting"`. |
+| `payload.participants` | `string[]` | Optional | List of expected participant names. Default: `[]`. |
 
-### `meeting-stop`
+**Backend behavior**: Initialize Gemini Live session (or fallback mode), reset card buffer, prepare Memory Agent context.
 
-Ends the active meeting session.
+---
+
+#### `meeting-stop`
+Signals that the user has clicked "End Meeting".
 
 ```json
 {
   "type": "meeting-stop",
-  "payload": {
-    "meetingId": "meeting-001",
-    "reason": "user"
-  },
-  "timestamp": "2024-01-15T11:00:00.000Z"
+  "payload": {},
+  "timestamp": "2026-03-14T10:34:12.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `meetingId` | string | Meeting to stop |
-| `reason` | `"user"` or `"timeout"` | Why the meeting is stopping |
+**Backend behavior**: Close Gemini Live session, stop processing audio/text, update meeting state. Does NOT automatically generate documents (that requires a separate `generate-documents` message).
 
-### `generate-documents`
+---
 
-Requests post-meeting document generation.
+#### `generate-documents`
+Requests post-meeting document generation from the Strategy Agent.
 
 ```json
 {
   "type": "generate-documents",
   "payload": {
-    "meetingId": "meeting-001",
     "types": ["summary", "follow-up-email", "strategy-brief", "decision-log"]
   },
-  "timestamp": "2024-01-15T11:00:30.000Z"
+  "timestamp": "2026-03-14T10:35:00.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `meetingId` | string | Meeting to generate documents for |
-| `types` | DocumentType[] | Which document types to generate |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.types` | `string[]` | Optional | Which documents to generate. If omitted, generate ALL four types. Valid values: `"summary"`, `"follow-up-email"`, `"strategy-brief"`, `"decision-log"`. |
+
+**Backend behavior**: Collect full transcript + all cards + vision highlights + memory context → send to Strategy Agent → broadcast each document back as `document` messages.
 
 ---
 
-## Section 3: Server → Client WebSocket Messages
+### 2.3 — Messages: Backend → Frontend (Server sends)
 
-### `meeting-state`
-
-Current state of the meeting session. Sent on connect and on every state change.
+#### `meeting-state`
+Broadcast whenever the meeting lifecycle state changes.
 
 ```json
 {
   "type": "meeting-state",
   "payload": {
-    "meetingId": "meeting-001",
     "state": "active",
-    "startedAt": "2024-01-15T10:00:05.000Z",
-    "stoppedAt": null
+    "meetingId": "mtg_20260314_103000",
+    "startedAt": "2026-03-14T10:00:00.000Z"
   },
-  "timestamp": "2024-01-15T10:00:05.000Z"
+  "timestamp": "2026-03-14T10:00:00.500Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `meetingId` | string or null | Current meeting ID |
-| `state` | MeetingState | `"idle"` \| `"starting"` \| `"active"` \| `"stopping"` \| `"ended"` |
-| `startedAt` | ISO8601 or null | When meeting became active |
-| `stoppedAt` | ISO8601 or null | When meeting ended |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.state` | `string` | **YES** | `"idle"` (no meeting), `"active"` (meeting in progress), `"ended"` (meeting finished, documents pending), `"error"` (unrecoverable failure). |
+| `payload.meetingId` | `string` | **YES** | Unique meeting identifier. Format: `"mtg_YYYYMMDD_HHMMSS"`. |
+| `payload.startedAt` | `string` | Optional | ISO 8601 timestamp of when the meeting started. Present when `state` is `"active"` or `"ended"`. |
+| `payload.endedAt` | `string` | Optional | ISO 8601 timestamp of when the meeting ended. Present only when `state` is `"ended"`. |
+| `payload.error` | `string` | Optional | Error description. Present only when `state` is `"error"`. |
 
-### `transcript`
+---
 
-A transcript segment from the live audio stream.
+#### `transcript`
+A new transcript segment (real-time, as speech is recognized).
 
 ```json
 {
   "type": "transcript",
   "payload": {
-    "meetingId": "meeting-001",
-    "segmentId": "seg-042",
-    "speaker": "Marcus Johnson",
-    "text": "We're currently spending about $50k monthly on Datadog...",
+    "text": "We've been evaluating Datadog for our infrastructure",
+    "speaker": "prospect",
     "isFinal": true,
-    "timestamp": "2024-01-15T10:30:15.000Z"
+    "segmentId": "seg_001"
   },
-  "timestamp": "2024-01-15T10:30:15.000Z"
+  "timestamp": "2026-03-14T10:30:05.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `segmentId` | string | Unique ID — same ID may be sent multiple times as isFinal updates |
-| `speaker` | string | Speaker name (from diarization) |
-| `text` | string | Transcript text |
-| `isFinal` | boolean | `false` = interim (will be updated), `true` = final |
-| `timestamp` | ISO8601 | When segment was spoken |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.text` | `string` | **YES** | The transcribed text. |
+| `payload.speaker` | `string` | **YES** | `"prospect"`, `"us"`, or `"unknown"`. |
+| `payload.isFinal` | `boolean` | **YES** | `true` for final transcription, `false` for interim (partial, may be updated). |
+| `payload.segmentId` | `string` | **YES** | Unique segment ID. Interim and final versions of the same utterance share the same `segmentId`. The frontend MUST replace interim text with the final version when `isFinal: true` arrives for the same `segmentId`. |
 
-### `card`
+---
 
-An intelligence card generated by the AI pipeline.
+#### `card`
+A new intelligence card produced by the Analyser Agent.
 
 ```json
 {
   "type": "card",
   "payload": {
-    "meetingId": "meeting-001",
-    "cardId": "card-007",
+    "cardId": "card_001",
     "label": "BATTLECARD",
-    "title": "Datadog Cost Comparison",
-    "summary": "TechVentures pays $50k/mo for Datadog. Our equivalent plan is $28k/mo — 44% savings.",
+    "priority": "warn",
+    "summary": "Datadog: volume billing, pitch our flat-rate",
     "details": [
       {
-        "question": "What is TechVentures current Datadog spend?",
-        "answer": "$50,000/month, scaling with infrastructure growth",
-        "source": "Live transcript"
+        "agent": "gmail",
+        "question": "Past communications about Datadog?",
+        "answer": "No prior emails mentioning Datadog found."
+      },
+      {
+        "agent": "drive",
+        "question": "Internal docs about Datadog comparison?",
+        "answer": "Found: 'AcmeCorp Meeting Notes Q4 2025' — competitor evaluation in progress, Datadog preferred by engineering."
       }
     ],
-    "confidence": 0.92,
-    "triggeredBy": "seg-042",
-    "timestamp": "2024-01-15T10:30:18.000Z"
+    "triggerSegmentId": "seg_001"
   },
-  "timestamp": "2024-01-15T10:30:18.000Z"
+  "timestamp": "2026-03-14T10:30:08.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `label` | CardLabel | `"ALERT"` \| `"BATTLECARD"` \| `"CONTEXT"` \| `"STRATEGY"` \| `"INFO"` |
-| `title` | string | Short actionable title (max 60 chars) |
-| `summary` | string | 1-2 sentence key insight |
-| `details` | CardDetail[] | Q&A entries with source citations |
-| `confidence` | number | 0.0–1.0 reliability score |
-| `triggeredBy` | string | segmentId that triggered this card |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.cardId` | `string` | **YES** | Unique card identifier. Format: `"card_NNN"`. |
+| `payload.label` | `string` | **YES** | One of: `"ALERT"`, `"BATTLECARD"`, `"CONTEXT"`, `"STRATEGY"`, `"INFO"`. No other values allowed. |
+| `payload.priority` | `string` | **YES** | One of: `"critical"`, `"warn"`, `"info"`, `"strategy"`, `"neutral"`. Maps to alert colors. |
+| `payload.summary` | `string` | **YES** | Max 12 words. Actionable, direct, no hedging. Displayed as the card headline. |
+| `payload.details` | `array` | **YES** | Array of agent Q/A results. At least 1 entry. |
+| `payload.details[].agent` | `string` | **YES** | One of: `"gmail"`, `"drive"`, `"sheets"`, `"calendar"`, `"listener"`, `"memory"`. |
+| `payload.details[].question` | `string` | **YES** | The question the agent was asked. |
+| `payload.details[].answer` | `string` | **YES** | The agent's response. |
+| `payload.triggerSegmentId` | `string` | Optional | The `segmentId` of the transcript segment that triggered this card. Allows the frontend to visually link cards to transcript moments. |
 
-### `vision`
+**Frontend behavior**: Display the card in the LiveCardBoard with the appropriate animation based on `label`:
+- `ALERT` → border flashes red, card fades in with scale-up
+- `BATTLECARD` → slides in from right
+- `CONTEXT` → fades in softly
+- `STRATEGY` → slides up from bottom
+- `INFO` → simple fade in
 
-Facial/emotion analysis from video feed.
+Also add a pill to the TopBar using the `priority` color.
+
+---
+
+#### `vision`
+Body language and scene analysis results from the Vision Agent.
 
 ```json
 {
   "type": "vision",
   "payload": {
-    "meetingId": "meeting-001",
-    "visionId": "vis-015",
-    "emotion": "skeptical",
-    "confidence": 0.78,
-    "notes": "Marcus raised eyebrows when pricing was mentioned",
-    "timestamp": "2024-01-15T10:30:20.000Z"
+    "bodyLanguage": {
+      "participants": [
+        {
+          "label": "Participant 1",
+          "expression": "skeptical",
+          "engagementScore": 62,
+          "attentionScore": 55,
+          "emotion": "Shows doubt, leaning back slightly",
+          "confidence": 0.82,
+          "changeFromPrevious": "shifted to skeptical"
+        }
+      ],
+      "groupDynamics": "Overall engagement has dropped since pricing was mentioned",
+      "alert": "Skepticism detected — engagement dropped 23%"
+    },
+    "sceneAnalysis": {
+      "description": "Conference room with whiteboard showing Q1 roadmap",
+      "objects": ["whiteboard", "laptop", "coffee mug"],
+      "textDetected": "Q1 Goals: Migration, Compliance, Cost Reduction",
+      "context": "Strategic planning session focused on Q1 priorities",
+      "risks": [],
+      "opportunities": ["Whiteboard shows Q1 priorities that align with our offering"]
+    }
   },
-  "timestamp": "2024-01-15T10:30:20.000Z"
+  "timestamp": "2026-03-14T10:30:10.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `emotion` | EmotionType | `"neutral"` \| `"positive"` \| `"skeptical"` \| `"confused"` \| `"engaged"` |
-| `confidence` | number | 0.0–1.0 |
-| `notes` | string | Human-readable interpretation |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.bodyLanguage` | `object` | **YES** | Body language analysis. |
+| `payload.bodyLanguage.participants` | `array` | **YES** | Array of per-person readings. May be empty if no faces detected. |
+| `payload.bodyLanguage.participants[].label` | `string` | **YES** | `"Participant 1"`, `"Participant 2"`, etc. Never a real name. |
+| `payload.bodyLanguage.participants[].expression` | `string` | **YES** | One of: `"neutral"`, `"positive"`, `"negative"`, `"skeptical"`, `"confused"`, `"engaged"`, `"disengaged"`, `"surprised"`. |
+| `payload.bodyLanguage.participants[].engagementScore` | `number` | **YES** | `0`–`100`. |
+| `payload.bodyLanguage.participants[].attentionScore` | `number` | **YES** | `0`–`100`. |
+| `payload.bodyLanguage.participants[].emotion` | `string` | **YES** | Free text description of emotional state. |
+| `payload.bodyLanguage.participants[].confidence` | `number` | **YES** | `0.0`–`1.0`. How confident the reading is. |
+| `payload.bodyLanguage.participants[].changeFromPrevious` | `string` | **YES** | One of: `"no change"`, `"more engaged"`, `"less engaged"`, `"shifted to skeptical"`, `"shifted to positive"`, `"shifted to confused"`, `"shifted to negative"`, `"new participant"`. |
+| `payload.bodyLanguage.groupDynamics` | `string` | **YES** | Overall group sentiment description. |
+| `payload.bodyLanguage.alert` | `string \| null` | **YES** | `null` if no significant shift. String describing the alert if a major shift was detected. When NOT null, the backend ALSO sends a separate `card` message of type `STRATEGY` based on this alert. |
+| `payload.sceneAnalysis` | `object` | **YES** | Scene understanding results. |
+| `payload.sceneAnalysis.description` | `string` | **YES** | Brief scene description. |
+| `payload.sceneAnalysis.objects` | `string[]` | **YES** | Notable objects. May be empty. |
+| `payload.sceneAnalysis.textDetected` | `string` | **YES** | Readable text from whiteboards/screens. Empty string if none. |
+| `payload.sceneAnalysis.context` | `string` | **YES** | Scene interpretation in meeting context. |
+| `payload.sceneAnalysis.risks` | `string[]` | **YES** | Risks observed. May be empty. |
+| `payload.sceneAnalysis.opportunities` | `string[]` | **YES** | Opportunities observed. May be empty. |
 
-### `document`
+---
 
-A generated post-meeting document.
+#### `document`
+A post-meeting document generated by the Strategy Agent. One message per document type.
 
 ```json
 {
   "type": "document",
   "payload": {
-    "meetingId": "meeting-001",
-    "documentId": "doc-001",
-    "type": "follow-up-email",
-    "title": "Follow-Up: AcmeCorp Monitoring Solution Proposal",
-    "content": "# Follow-Up Email\n\nDear Marcus...",
-    "generatedAt": "2024-01-15T11:01:00.000Z"
+    "docId": "doc_summary_mtg_20260314_103000",
+    "docType": "summary",
+    "title": "Meeting Summary — AcmeCorp Q1 Review",
+    "content": "## Executive Overview\n\nThis 34-minute call with AcmeCorp covered...",
+    "metadata": {
+      "meetingId": "mtg_20260314_103000",
+      "duration": "34:12",
+      "participants": ["Thomas Martin", "Sarah Chen"],
+      "topicsCount": 3,
+      "decisionsCount": 4,
+      "generatedAt": "2026-03-14T10:36:00.000Z"
+    }
   },
-  "timestamp": "2024-01-15T11:01:00.000Z"
+  "timestamp": "2026-03-14T10:36:00.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | DocumentType | `"summary"` \| `"follow-up-email"` \| `"strategy-brief"` \| `"decision-log"` |
-| `content` | string | Full document content in **Markdown** |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.docId` | `string` | **YES** | Unique document ID. Format: `"doc_{docType}_{meetingId}"`. |
+| `payload.docType` | `string` | **YES** | One of: `"summary"`, `"follow-up-email"`, `"strategy-brief"`, `"decision-log"`. No other values. |
+| `payload.title` | `string` | **YES** | Human-readable document title. |
+| `payload.content` | `string` | **YES** | The document body in **Markdown format**. Frontend renders this with a Markdown renderer. |
+| `payload.metadata` | `object` | **YES** | Meeting metadata. |
+| `payload.metadata.meetingId` | `string` | **YES** | References the meeting that produced this document. |
+| `payload.metadata.duration` | `string` | **YES** | Meeting duration as `"MM:SS"` or `"HH:MM:SS"`. |
+| `payload.metadata.participants` | `string[]` | **YES** | Participant names. |
+| `payload.metadata.topicsCount` | `number` | **YES** | Number of topics discussed. |
+| `payload.metadata.decisionsCount` | `number` | **YES** | Number of decisions made. |
+| `payload.metadata.generatedAt` | `string` | **YES** | ISO 8601 timestamp of generation. |
 
-### `pipeline-status`
+---
 
-AI pipeline processing status update.
+#### `pipeline-status`
+Informs the frontend about what the backend is currently doing. Used for loading states and "AI thinking" animations.
 
 ```json
 {
   "type": "pipeline-status",
   "payload": {
-    "meetingId": "meeting-001",
-    "stage": "fetching",
-    "workersActive": ["gmail-worker", "drive-worker"],
-    "message": "Fetching pricing data and email history..."
+    "stage": "workers",
+    "message": "Searching Gmail and Drive...",
+    "active": true
   },
-  "timestamp": "2024-01-15T10:30:16.000Z"
+  "timestamp": "2026-03-14T10:30:06.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `stage` | PipelineStage | `"listening"` \| `"fetching"` \| `"analysing"` \| `"done"` \| `"error"` |
-| `workersActive` | string[] | Which GWS workers are currently running |
-| `message` | string | Human-readable status message for display |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.stage` | `string` | **YES** | One of: `"listener"`, `"workers"`, `"analyser"`, `"vision"`, `"strategy"`, `"memory"`, `"idle"`. |
+| `payload.message` | `string` | **YES** | Human-readable status. Displayed in the UI as subtle text. |
+| `payload.active` | `boolean` | **YES** | `true` if this stage is currently running. `false` when it completes. |
 
-### `error`
+**Frontend behavior**: When `active: true`, show a Gemini-style pulsing indicator near the card board. When `stage: "idle"`, hide all loading states.
 
-Server-side error notification.
+---
+
+#### `error`
+Backend encountered an error it wants the frontend to know about.
 
 ```json
 {
   "type": "error",
   "payload": {
-    "code": "GWS_TIMEOUT",
-    "message": "Google Workspace CLI timed out after 10s. Retrying with cached data.",
+    "code": "GEMINI_LIVE_DISCONNECTED",
+    "message": "Gemini Live API connection lost. Switching to fallback mode.",
     "recoverable": true
   },
-  "timestamp": "2024-01-15T10:30:17.000Z"
+  "timestamp": "2026-03-14T10:31:00.000Z"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `code` | string | Machine-readable error code (UPPER_SNAKE_CASE) |
-| `message` | string | Human-readable explanation |
-| `recoverable` | boolean | `true` = UI should show warning; `false` = show blocking error |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payload.code` | `string` | **YES** | Machine-readable error code. Known codes: `"GEMINI_LIVE_DISCONNECTED"`, `"WORKER_TIMEOUT"`, `"VISION_AGENT_FAILED"`, `"STRATEGY_AGENT_FAILED"`, `"MEMORY_AGENT_FAILED"`, `"UNKNOWN_ERROR"`. |
+| `payload.message` | `string` | **YES** | Human-readable error message. Displayed in the UI. |
+| `payload.recoverable` | `boolean` | **YES** | `true` if the system can continue operating (degraded). `false` if the meeting must be restarted. |
+
+**Frontend behavior**: Show a toast notification. If `recoverable: false`, disable audio capture and show a "Reconnect" button.
 
 ---
 
-## Section 4: REST API Endpoints
+## 3. REST API ENDPOINTS
 
-### Health
+Base URL: `http://localhost:3001` (from `NEXT_PUBLIC_API_URL`).
 
-```
-GET /api/health
-```
-Response:
+All responses follow this envelope:
+
 ```json
 {
   "success": true,
-  "version": "1.0",
-  "mode": "live",
-  "timestamp": "2024-01-15T10:00:00.000Z",
-  "features": {
-    "vision": true,
-    "memory": true,
-    "strategyAgent": true
+  "data": { ... }
+}
+```
+
+On error:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Meeting not found"
   }
 }
 ```
 
-### Meetings
+---
 
+### `GET /api/health`
+
+Health check. Returns server status and feature flags.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "mode": "live",
+    "useMock": false,
+    "features": {
+      "visionAgent": true,
+      "strategyAgent": true,
+      "memoryAgent": true,
+      "calendarWorker": true
+    },
+    "uptime": 3600
+  }
+}
 ```
-GET /api/meetings
-→ { "success": true, "meetings": Meeting[] }
 
-GET /api/meetings/:meetingId/documents
-→ { "success": true, "documents": Document[] }
+**Frontend use**: Called on app load to check backend availability and determine which UI panels to show (e.g., hide camera panel if `visionAgent: false`).
 
-GET /api/meetings/:meetingId/cards
-→ { "success": true, "cards": Card[] }
+---
 
-GET /api/meetings/:meetingId/transcript
-→ { "success": true, "segments": TranscriptSegment[] }
-```
+### `GET /api/meetings`
 
-### Memory
+Returns a list of past meetings (from Memory Agent).
 
-```
-GET /api/memory/graph
-→ { "success": true, "nodes": Node[], "edges": Edge[], "stats": Stats }
-
-GET /api/memory/people
-→ { "success": true, "people": Person[] }
-
-GET /api/memory/patterns
-→ { "success": true, "patterns": Pattern[] }
-
-GET /api/memory/decisions
-→ { "success": true, "decisions": Decision[] }
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "meetings": [
+      {
+        "meetingId": "mtg_20260314_103000",
+        "title": "AcmeCorp Q1 Review",
+        "date": "2026-03-14T10:00:00.000Z",
+        "duration": "34:12",
+        "participants": ["Thomas Martin", "Sarah Chen"],
+        "cardsCount": 5,
+        "documentsGenerated": true
+      }
+    ]
+  }
+}
 ```
 
 ---
 
-## Section 5: WebSocket Lifecycle Sequence Diagram
+### `GET /api/meetings/:meetingId/documents`
 
+Returns all generated documents for a specific meeting.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "documents": [
+      {
+        "docId": "doc_summary_mtg_20260314_103000",
+        "docType": "summary",
+        "title": "Meeting Summary — AcmeCorp Q1 Review",
+        "content": "## Executive Overview\n\n...",
+        "metadata": { ... }
+      }
+    ]
+  }
+}
 ```
-Frontend                                    Server
-   |                                           |
-   |──── TCP connect to ws://localhost:3001/ws |
-   |                                           |
-   |<──── meeting-state { state: "idle" } ─────|  (on connect)
-   |                                           |
-   |──── meeting-start { meetingId, title } ───|
-   |                                           |
-   |<──── meeting-state { state: "starting" } ─|
-   |<──── meeting-state { state: "active" } ───|
-   |                                           |
-   |──── audio-chunk { data, chunkIndex:0 } ───|
-   |──── audio-chunk { data, chunkIndex:1 } ───|
-   |──── audio-chunk { data, chunkIndex:N } ───|  (250ms intervals)
-   |                                           |
-   |<──── pipeline-status { stage:"listening" }|
-   |<──── transcript { seg-001, isFinal:false }|  (interim)
-   |<──── transcript { seg-001, isFinal:true } |  (final)
-   |<──── pipeline-status { stage:"fetching" } |
-   |<──── pipeline-status { stage:"analysing" }|
-   |<──── card { label:"BATTLECARD", ... } ────|
-   |<──── pipeline-status { stage:"done" } ────|
-   |<──── vision { emotion:"skeptical" } ───── |
-   |                                           |
-   |──── meeting-stop { reason: "user" } ──────|
-   |                                           |
-   |<──── meeting-state { state:"stopping" } ──|
-   |<──── meeting-state { state:"ended" } ─────|
-   |                                           |
-   |──── generate-documents { types:[...] } ───|
-   |                                           |
-   |<──── pipeline-status { stage:"analysing" }|
-   |<──── document { type:"summary", ... } ────|
-   |<──── document { type:"follow-up-email" } ─|
-   |<──── document { type:"strategy-brief" } ──|
-   |<──── document { type:"decision-log" } ────|
-   |<──── pipeline-status { stage:"done" } ────|
-   |                                           |
+
+**Frontend use**: The Review page uses this to load documents for past meetings (not just the live one).
+
+---
+
+### `GET /api/meetings/:meetingId/cards`
+
+Returns all cards generated during a specific meeting.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cards": [
+      {
+        "cardId": "card_001",
+        "label": "BATTLECARD",
+        "priority": "warn",
+        "summary": "Datadog: volume billing, pitch our flat-rate",
+        "details": [ ... ],
+        "triggerSegmentId": "seg_001",
+        "timestamp": "2026-03-14T10:30:08.000Z"
+      }
+    ]
+  }
+}
 ```
 
 ---
 
-## Section 6: Label-to-Color Mapping
+### `GET /api/meetings/:meetingId/transcript`
 
-These values are the source of truth. Both `frontend/lib/config.ts` and `server/config.js` derive their values from this table.
+Returns the full transcript for a specific meeting.
 
-| Label | Color (text) | Background | Border |
-|-------|-------------|------------|--------|
-| `ALERT` | `#EA4335` | `#FDE7E7` | `#F5C6C6` |
-| `BATTLECARD` | `#FBBC04` | `#FEF7E0` | `#FDE293` |
-| `CONTEXT` | `#34A853` | `#E6F4EA` | `#B7E1C1` |
-| `STRATEGY` | `#4285F4` | `#E8F0FE` | `#AECBFA` |
-| `INFO` | `#5F6368` | `#F1F3F4` | `#DADCE0` |
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "segments": [
+      {
+        "segmentId": "seg_001",
+        "text": "We've been evaluating Datadog for our infrastructure",
+        "speaker": "prospect",
+        "timestamp": "2026-03-14T10:30:05.000Z"
+      }
+    ]
+  }
+}
+```
 
 ---
 
-## Section 7: TypeScript Types
+### `GET /api/memory/graph`
 
-These types are the canonical definitions. They are copied verbatim into `frontend/lib/types.ts`.
+Returns the full knowledge graph for the Memory page visualization.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "nodes": [
+      { "id": "person_thomas_martin", "type": "person", "label": "Thomas Martin", "properties": { "title": "CTO", "company": "AcmeCorp", "meetingsCount": 5 } },
+      { "id": "company_acmecorp", "type": "company", "label": "AcmeCorp", "properties": { "dealSize": "175K", "stage": "evaluation" } },
+      { "id": "topic_security", "type": "topic", "label": "Security / ISO 27001", "properties": { "mentionCount": 8 } }
+    ],
+    "edges": [
+      { "source": "person_thomas_martin", "target": "company_acmecorp", "relationship": "works_at" },
+      { "source": "person_thomas_martin", "target": "topic_security", "relationship": "raised_concern" }
+    ],
+    "stats": {
+      "totalInteractions": 142,
+      "totalPeople": 23,
+      "totalDecisions": 67,
+      "totalPatterns": 12
+    }
+  }
+}
+```
+
+---
+
+### `GET /api/memory/people`
+
+Returns people profiles for the Memory page.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "people": [
+      {
+        "id": "person_thomas_martin",
+        "name": "Thomas Martin",
+        "title": "CTO",
+        "company": "AcmeCorp",
+        "lastInteraction": "2026-03-14T10:34:12.000Z",
+        "meetingsCount": 5,
+        "keyConcerns": ["Security compliance", "No hidden fees"],
+        "communicationStyle": "Direct, data-driven, pushes back on pricing first",
+        "interactions": [
+          {
+            "date": "2026-03-14T10:00:00.000Z",
+            "meetingId": "mtg_20260314_103000",
+            "summary": "Discussed pricing, security, and Datadog comparison"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### `GET /api/memory/patterns`
+
+Returns detected patterns for the Memory page.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "patterns": [
+      {
+        "id": "pattern_001",
+        "description": "Thomas always pushes back on pricing before discussing features",
+        "frequency": 4,
+        "confidence": 0.85,
+        "lastObserved": "2026-03-14T10:30:05.000Z",
+        "relatedPeople": ["person_thomas_martin"],
+        "relatedTopics": ["topic_pricing"]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### `GET /api/memory/decisions`
+
+Returns decision history for the Memory page.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "decisions": [
+      {
+        "id": "decision_001",
+        "text": "Proceed with flat-rate pricing proposal for AcmeCorp",
+        "owner": "Us",
+        "deadline": "2026-03-21",
+        "context": "AcmeCorp hates hidden fees; previous vendor (Splunk) had overage charges",
+        "status": "new",
+        "meetingId": "mtg_20260314_103000",
+        "date": "2026-03-14T10:32:00.000Z",
+        "contradictsDecisionId": null
+      }
+    ]
+  }
+}
+```
+
+| `status` values | Description |
+|-----------------|-------------|
+| `"new"` | Just decided in this meeting |
+| `"confirmed"` | Reaffirms a previous decision |
+| `"contradicts"` | Contradicts a previous decision (see `contradictsDecisionId`) |
+
+---
+
+## 4. WEBSOCKET LIFECYCLE
+
+This is the exact sequence of events for a complete meeting session. Both teams MUST implement this flow.
+
+```
+FRONTEND                          BACKEND
+   |                                 |
+   |--- WebSocket connect /ws ------>|
+   |<-- meeting-state {idle} --------|    (backend confirms connection)
+   |                                 |
+   |--- GET /api/health ------------>|    (frontend checks features)
+   |<-- {features, mode} ------------|
+   |                                 |
+   |--- meeting-start --------------->|
+   |<-- meeting-state {active} ------|    (backend confirms meeting started)
+   |                                 |
+   |=== MEETING LOOP (repeats) ======|
+   |                                 |
+   |--- audio-chunk OR text-input -->|    (every 250ms for audio, or on speech end for text)
+   |<-- transcript {interim} --------|    (fast, partial recognition)
+   |<-- transcript {final} ----------|    (confirmed text)
+   |                                 |
+   |<-- pipeline-status {listener} --|    (Listener analyzing...)
+   |<-- pipeline-status {workers} ---|    (Workers searching GWS...)
+   |<-- pipeline-status {analyser} --|    (Analyser building card...)
+   |<-- card -------------------------|    (new intelligence card)
+   |<-- pipeline-status {idle} ------|    (pipeline complete)
+   |                                 |
+   |<-- vision ----------------------|    (every 5s if camera enabled)
+   |<-- card {STRATEGY} -------------|    (only if vision.alert is not null)
+   |                                 |
+   |=== END MEETING LOOP ============|
+   |                                 |
+   |--- meeting-stop ---------------->|
+   |<-- meeting-state {ended} -------|
+   |                                 |
+   |--- generate-documents ---------->|
+   |<-- pipeline-status {strategy} --|
+   |<-- document {summary} ----------|
+   |<-- document {follow-up-email} --|
+   |<-- document {strategy-brief} ---|
+   |<-- document {decision-log} -----|
+   |<-- pipeline-status {memory} ----|    (Memory Agent storing...)
+   |<-- pipeline-status {idle} ------|
+   |                                 |
+   |--- GET /api/meetings -----------|    (Review page loads past data)
+   |--- GET /api/memory/graph -------|    (Memory page loads graph)
+   |                                 |
+```
+
+---
+
+## 5. MOCK / DEMO MODE
+
+When `USE_MOCK=true` on the backend:
+
+- All GWS workers return data from `mock-data/mock-data.json` instead of calling `gws` CLI.
+- Vision Agent returns data from `mock-data/mock-vision.json` instead of calling Gemini Pro.
+- Memory Agent returns data from `mock-data/mock-memory.json`.
+- The Listener Agent and Analyser Agent still call Gemini Flash (they need AI reasoning), BUT if Gemini is also unavailable, the server should return pre-built cards from mock data.
+
+When `MODE=fallback` on the backend:
+
+- The server does NOT open a Gemini Live API session.
+- The server accepts `text-input` messages instead of `audio-chunk` messages.
+- The frontend uses `window.SpeechRecognition` for speech-to-text and sends `text-input` messages.
+- All other flows remain identical.
+
+**CRITICAL for demo**: When both `USE_MOCK=true` AND `MODE=fallback` are set, the system runs 100% simulated. The frontend sends text, the backend processes it through Listener/Analyser with mock GWS data, and returns cards. This must be indistinguishable from the live version to an observer.
+
+---
+
+## 6. LABEL-TO-COLOR MAPPING
+
+Both frontend and backend MUST use the same mapping. This table is the single source of truth.
+
+| `label` | `priority` | Color Name | Hex | Background | Border |
+|---------|-----------|------------|-----|------------|--------|
+| `ALERT` | `critical` | Google Red | `#EA4335` | `#FDE7E7` | `#F5C6C6` |
+| `BATTLECARD` | `warn` | Google Yellow | `#FBBC04` | `#FEF7E0` | `#FDE293` |
+| `CONTEXT` | `info` | Google Green | `#34A853` | `#E6F4EA` | `#B7E1C1` |
+| `STRATEGY` | `strategy` | Google Blue | `#4285F4` | `#E8F0FE` | `#AECBFA` |
+| `INFO` | `neutral` | Grey | `#5F6368` | `#F1F3F4` | `#DADCE0` |
+
+---
+
+## 7. TYPESCRIPT TYPES (Frontend Reference)
+
+The frontend MUST define these types in `lib/types.ts`. They correspond exactly to the WebSocket payload structures above.
 
 ```typescript
-// Enums
-type CardLabel = 'ALERT' | 'BATTLECARD' | 'CONTEXT' | 'STRATEGY' | 'INFO';
-type MeetingState = 'idle' | 'starting' | 'active' | 'stopping' | 'ended';
-type DocumentType = 'summary' | 'follow-up-email' | 'strategy-brief' | 'decision-log';
-type EmotionType = 'neutral' | 'positive' | 'skeptical' | 'confused' | 'engaged';
-type PipelineStage = 'listening' | 'fetching' | 'analysing' | 'done' | 'error';
-type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+// ============================================================
+// DEALBOARD PROTOCOL TYPES
+// These types map 1:1 to the WebSocket and REST API payloads
+// defined in PROTOCOL.md. Do NOT modify field names or types
+// without updating PROTOCOL.md first.
+// ============================================================
 
-// Envelope
-interface WsEnvelope<T = unknown> {
+// --- Enums ---
+
+export type MeetingState = 'idle' | 'active' | 'ended' | 'error';
+export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
+export type CardLabel = 'ALERT' | 'BATTLECARD' | 'CONTEXT' | 'STRATEGY' | 'INFO';
+export type CardPriority = 'critical' | 'warn' | 'info' | 'strategy' | 'neutral';
+export type DocType = 'summary' | 'follow-up-email' | 'strategy-brief' | 'decision-log';
+export type Speaker = 'prospect' | 'us' | 'unknown';
+export type Expression = 'neutral' | 'positive' | 'negative' | 'skeptical' | 'confused' | 'engaged' | 'disengaged' | 'surprised';
+export type EngagementChange = 'no change' | 'more engaged' | 'less engaged' | 'shifted to skeptical' | 'shifted to positive' | 'shifted to confused' | 'shifted to negative' | 'new participant';
+export type PipelineStage = 'listener' | 'workers' | 'analyser' | 'vision' | 'strategy' | 'memory' | 'idle';
+export type ErrorCode = 'GEMINI_LIVE_DISCONNECTED' | 'WORKER_TIMEOUT' | 'VISION_AGENT_FAILED' | 'STRATEGY_AGENT_FAILED' | 'MEMORY_AGENT_FAILED' | 'UNKNOWN_ERROR';
+export type DecisionStatus = 'new' | 'confirmed' | 'contradicts';
+
+// --- WebSocket Message Envelope ---
+
+export interface WSMessage {
   type: string;
-  payload: T;
+  payload: Record<string, unknown>;
   timestamp: string;
 }
 
-// Client → Server
-interface AudioChunkPayload { data: string; sampleRate: number; channels: number; chunkIndex: number; }
-interface TextInputPayload { text: string; meetingId: string; }
-interface MeetingStartPayload { meetingId: string; title: string; participants: string[]; context: string; }
-interface MeetingStopPayload { meetingId: string; reason: 'user' | 'timeout'; }
-interface GenerateDocumentsPayload { meetingId: string; types: DocumentType[]; }
+// --- Card ---
 
-// Server → Client
-interface MeetingStatePayload { meetingId: string | null; state: MeetingState; startedAt: string | null; stoppedAt: string | null; }
-interface TranscriptPayload { meetingId: string; segmentId: string; speaker: string; text: string; isFinal: boolean; timestamp: string; }
-interface CardDetailEntry { question: string; answer: string; source: string; }
-interface CardPayload { meetingId: string; cardId: string; label: CardLabel; title: string; summary: string; details: CardDetailEntry[]; confidence: number; triggeredBy: string; timestamp: string; }
-interface VisionPayload { meetingId: string; visionId: string; emotion: EmotionType; confidence: number; notes: string; timestamp: string; }
-interface DocumentPayload { meetingId: string; documentId: string; type: DocumentType; title: string; content: string; generatedAt: string; }
-interface PipelineStatusPayload { meetingId: string; stage: PipelineStage; workersActive: string[]; message: string; }
-interface ErrorPayload { code: string; message: string; recoverable: boolean; }
+export interface CardDetail {
+  agent: 'gmail' | 'drive' | 'sheets' | 'calendar' | 'listener' | 'memory';
+  question: string;
+  answer: string;
+}
 
-// Entities
-interface Meeting { id: string; title: string; date: string; duration: number; participants: string[]; cardCount: number; documentCount: number; }
-interface Person { id: string; name: string; role: string; company: string; decisionMaker: boolean; preferences: string[]; concerns: string[]; lastSeen: string; relationship: string; }
-interface Pattern { id: string; type: string; description: string; evidence: string[]; confidence: number; recommendation?: string; }
-interface Decision { id: string; date: string; meetingId: string; description: string; madeBy: string; status: 'pending' | 'completed' | 'cancelled'; }
-interface GraphNode { id: string; type: 'person' | 'company' | 'topic' | 'decision'; label: string; data: Record<string, unknown>; }
-interface GraphEdge { id: string; source: string; target: string; type: string; data: Record<string, unknown>; }
-interface GraphStats { totalNodes: number; totalEdges: number; totalMeetings: number; lastUpdated: string | null; }
+export interface Card {
+  cardId: string;
+  label: CardLabel;
+  priority: CardPriority;
+  summary: string;
+  details: CardDetail[];
+  triggerSegmentId?: string;
+  timestamp: string;
+}
+
+// --- Transcript ---
+
+export interface TranscriptSegment {
+  segmentId: string;
+  text: string;
+  speaker: Speaker;
+  isFinal: boolean;
+  timestamp: string;
+}
+
+// --- Vision ---
+
+export interface ParticipantReading {
+  label: string;
+  expression: Expression;
+  engagementScore: number;
+  attentionScore: number;
+  emotion: string;
+  confidence: number;
+  changeFromPrevious: EngagementChange;
+}
+
+export interface BodyLanguage {
+  participants: ParticipantReading[];
+  groupDynamics: string;
+  alert: string | null;
+}
+
+export interface SceneAnalysis {
+  description: string;
+  objects: string[];
+  textDetected: string;
+  context: string;
+  risks: string[];
+  opportunities: string[];
+}
+
+export interface VisionData {
+  bodyLanguage: BodyLanguage;
+  sceneAnalysis: SceneAnalysis;
+}
+
+// --- Document ---
+
+export interface DocumentMetadata {
+  meetingId: string;
+  duration: string;
+  participants: string[];
+  topicsCount: number;
+  decisionsCount: number;
+  generatedAt: string;
+}
+
+export interface MeetingDocument {
+  docId: string;
+  docType: DocType;
+  title: string;
+  content: string;
+  metadata: DocumentMetadata;
+}
+
+// --- Memory / Knowledge Graph ---
+
+export interface GraphNode {
+  id: string;
+  type: 'person' | 'company' | 'topic' | 'decision';
+  label: string;
+  properties: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relationship: string;
+}
+
+export interface KnowledgeGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  stats: {
+    totalInteractions: number;
+    totalPeople: number;
+    totalDecisions: number;
+    totalPatterns: number;
+  };
+}
+
+export interface PersonProfile {
+  id: string;
+  name: string;
+  title: string;
+  company: string;
+  lastInteraction: string;
+  meetingsCount: number;
+  keyConcerns: string[];
+  communicationStyle: string;
+  interactions: {
+    date: string;
+    meetingId: string;
+    summary: string;
+  }[];
+}
+
+export interface Pattern {
+  id: string;
+  description: string;
+  frequency: number;
+  confidence: number;
+  lastObserved: string;
+  relatedPeople: string[];
+  relatedTopics: string[];
+}
+
+export interface Decision {
+  id: string;
+  text: string;
+  owner: string;
+  deadline: string;
+  context: string;
+  status: DecisionStatus;
+  meetingId: string;
+  date: string;
+  contradictsDecisionId: string | null;
+}
+
+// --- Pipeline Status ---
+
+export interface PipelineStatus {
+  stage: PipelineStage;
+  message: string;
+  active: boolean;
+}
+
+// --- Error ---
+
+export interface WSError {
+  code: ErrorCode;
+  message: string;
+  recoverable: boolean;
+}
+
+// --- Meeting (for REST /api/meetings) ---
+
+export interface MeetingSummaryItem {
+  meetingId: string;
+  title: string;
+  date: string;
+  duration: string;
+  participants: string[];
+  cardsCount: number;
+  documentsGenerated: boolean;
+}
 ```
 
 ---
 
-## Section 8: Reconnection Behavior
+## 8. RECONNECTION BEHAVIOR
 
-### Frontend Reconnection Strategy
-
-1. **Initial delay**: 3000ms (config `RECONNECT_INTERVAL_MS`)
-2. **Max delay**: 30000ms (config `RECONNECT_MAX_INTERVAL_MS`)
-3. **Backoff**: Exponential — delay doubles on each failed attempt
-4. **Reset**: On successful connection, delay resets to initial value
-
-### Reconnection During Active Meeting
-
-If the WebSocket disconnects while a meeting is `active` or `starting`:
-1. Frontend must display a disconnection warning
-2. On reconnect, frontend should re-send `meeting-start` with the same `meetingId`
-3. Server should resume the session if `meetingId` matches an active session
-
-### Example Backoff Sequence
-
-```
-Attempt 1: wait 3s
-Attempt 2: wait 6s
-Attempt 3: wait 12s
-Attempt 4: wait 24s
-Attempt 5+: wait 30s (capped)
-```
+| Event | Frontend behavior | Backend behavior |
+|-------|-------------------|------------------|
+| WebSocket disconnects | Show "Reconnecting..." status. Retry every 3 seconds (from config `WEBSOCKET_RECONNECT_INTERVAL_MS`). Use exponential backoff: 3s, 6s, 12s, max 30s. | Log disconnection. Clean up client session. |
+| WebSocket reconnects during active meeting | Send `meeting-start` again. Backend resumes from current state. Frontend re-subscribes to all data. | Detect re-connection, send current `meeting-state` and any buffered cards/transcript since disconnection. |
+| WebSocket reconnects after meeting ended | Frontend loads historical data via REST endpoints. | Send `meeting-state {ended}`. |
 
 ---
 
-## Section 9: Versioning Rules
+## 9. VERSIONING
 
-1. **Protocol version** is returned in `GET /api/health` as `"version": "1.0"`.
-2. **Non-breaking changes** (adding optional fields, new message types) do NOT require a version bump.
-3. **Breaking changes** (removing fields, changing types, renaming message types) REQUIRE:
-   - Version bump in `/api/health`
-   - Update to this file
-   - Agreement from both frontend and backend teams
-   - Update to `frontend/lib/types.ts`
-4. **This file** (`PROTOCOL.md`) is the canonical source of truth. If types.ts and PROTOCOL.md disagree, PROTOCOL.md wins.
+This protocol is **version 1**. If either team needs to add new message types or fields:
+
+1. Add them to this document first.
+2. New fields on existing messages MUST be optional (so the other side doesn't break).
+3. New message types are automatically ignored by the other side (per the rule in section 2.1).
+4. Breaking changes (renaming fields, removing fields, changing types) require both teams to update simultaneously.
 
 ---
 
-## Section 10: Team Checklists
+## 10. CHECKLIST FOR EACH TEAM
 
-### Frontend Checklist
+### Frontend team MUST:
+- [ ] Connect to a single WebSocket at `WS_URL/ws`
+- [ ] Send all client messages as JSON with `{ type, payload, timestamp }`
+- [ ] Handle all server message types listed in section 2.3
+- [ ] Silently ignore unknown message types
+- [ ] Call `GET /api/health` on app load to determine feature flags
+- [ ] Use REST endpoints for historical data (Review page, Memory page)
+- [ ] Implement reconnection with exponential backoff
+- [ ] Use the TypeScript types from section 7 exactly as defined
 
-- [ ] `WebSocketClient` connects to `config.WS_URL` on app mount
-- [ ] All 5 client→server message types are implemented: `audio-chunk`, `text-input`, `meeting-start`, `meeting-stop`, `generate-documents`
-- [ ] All 7 server→client message types are handled: `meeting-state`, `transcript`, `card`, `vision`, `document`, `pipeline-status`, `error`
-- [ ] Unknown message types are **silently ignored** (no console.error, no crash)
-- [ ] Reconnection with exponential backoff is implemented
-- [ ] `/api/health` is fetched on mount to populate feature flags
-- [ ] `CardLabel` colors match Section 6 exactly
-- [ ] All TypeScript types imported from `lib/types.ts` — no inline type definitions elsewhere
-
-### Backend Checklist
-
-- [ ] WebSocket server listens on `/ws` path
-- [ ] All 5 client→server message types are handled
-- [ ] All 7 server→client message types can be sent via `broadcastToClient`
-- [ ] Unknown message types are **silently ignored**
-- [ ] Every WS response uses the `{ type, payload, timestamp }` envelope
-- [ ] `GET /api/health` returns exact schema from Section 4
-- [ ] All 8 REST endpoints are implemented (even if returning empty arrays)
-- [ ] `config.js` is the single source of truth — no magic strings elsewhere
-- [ ] `USE_MOCK=true` returns mock data from `mock-data/`
+### Backend team MUST:
+- [ ] Expose a single WebSocket endpoint at `/ws`
+- [ ] Send all server messages as JSON with `{ type, payload, timestamp }`
+- [ ] Handle all client message types listed in section 2.2
+- [ ] Silently ignore unknown message types
+- [ ] Implement all REST endpoints from section 3
+- [ ] Send `pipeline-status` messages to keep the frontend informed
+- [ ] Send `meeting-state` on every state transition
+- [ ] Send `error` messages for all recoverable and unrecoverable errors
+- [ ] Support `USE_MOCK=true` and `MODE=fallback` as described in section 5
