@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DealBoard AI Companion — Your Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS — Google / Gemini Aesthetic
+   ============================================================ */
+:root {
+  --g-blue: #4285F4;
+  --g-red: #EA4335;
+  --g-yellow: #FBBC04;
+  --g-green: #34A853;
+  --g-purple: #A142F4;
+  --gemini-grad: linear-gradient(135deg, #4285F4 0%, #A142F4 100%);
+  --gemini-grad-soft: linear-gradient(135deg, rgba(66,133,244,0.08) 0%, rgba(161,66,244,0.08) 100%);
+  --surface-white: #FFFFFF;
+  --surface-light: #F8F9FA;
+  --surface-med: #E8EAED;
+  --surface-dark: #1A1A2E;
+  --text-primary: #202124;
+  --text-secondary: #5F6368;
+  --text-muted: #9AA0A6;
+  --alert-red-bg: #FDE7E7;
+  --alert-red-border: #F5C6C6;
+  --alert-amber-bg: #FEF7E0;
+  --alert-amber-border: #FDE293;
+  --alert-green-bg: #E6F4EA;
+  --alert-green-border: #B7E1C1;
+  --alert-blue-bg: #E8F0FE;
+  --alert-blue-border: #AECBFA;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --font-display: 'Google Sans', 'Product Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Google Sans Text', 'Roboto', sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+  --sidebar-w: 250px;
+  --topbar-h: 56px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--surface-light);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes borderFlash {
+  0%,100% { box-shadow: inset 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 0 2px var(--g-red); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+@keyframes pillSlide {
+  from { opacity: 0; transform: translateX(-24px) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.anim-fade-up { animation: fadeUp 0.4s ease-out both; }
+.anim-slide-right { animation: slideInRight 0.35s ease-out both; }
+.anim-scale { animation: scaleIn 0.3s ease-out both; }
+.anim-pill { animation: pillSlide 0.35s cubic-bezier(.4,0,.2,1) both; }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.app { display: flex; height: 100vh; background: var(--surface-light); }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface-white);
+  border-right: 1px solid var(--surface-med);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.sidebar-logo {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--surface-med);
+}
+.sidebar-logo-icon {
+  width: 32px; height: 32px;
+  background: var(--gemini-grad);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 15px;
+  font-family: var(--font-display);
+}
+.sidebar-logo-text {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.sidebar-logo-text span {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.sidebar-nav { flex: 1; padding: 12px 10px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  position: relative;
+}
+.nav-item:hover { background: var(--surface-light); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--alert-blue-bg);
+  color: var(--g-blue);
+  font-weight: 500;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  background: var(--g-blue);
+  border-radius: 0 3px 3px 0;
+}
+.nav-icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--g-red);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--surface-med);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.green { background: var(--g-green); box-shadow: 0 0 6px rgba(52,168,83,0.5); }
+.status-dot.yellow { background: var(--g-yellow); animation: pulse 1.5s infinite; }
+.status-dot.red { background: var(--g-red); }
+
+/* MAIN AREA */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* TOPBAR */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surface-white);
+  border-bottom: 1px solid var(--surface-med);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 5;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.topbar-pills { display: flex; gap: 6px; margin-left: 16px; flex: 1; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pill:hover { transform: scale(1.04); }
+.pill-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+.pill.red { background: var(--alert-red-bg); color: var(--g-red); border: 1px solid var(--alert-red-border); }
+.pill.red .pill-dot { background: var(--g-red); }
+.pill.amber { background: var(--alert-amber-bg); color: #B06D00; border: 1px solid var(--alert-amber-border); }
+.pill.amber .pill-dot { background: var(--g-yellow); }
+.pill.green { background: var(--alert-green-bg); color: #1B7A2E; border: 1px solid var(--alert-green-border); }
+.pill.green .pill-dot { background: var(--g-green); }
+.pill.blue { background: var(--alert-blue-bg); color: var(--g-blue); border: 1px solid var(--alert-blue-border); }
+.pill.blue .pill-dot { background: var(--g-blue); }
+
+.topbar-timer {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--surface-light);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--surface-med);
+}
+.topbar-actions { display: flex; gap: 8px; }
+
+/* BUTTONS */
+.btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 18px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary {
+  background: var(--gemini-grad);
+  color: white;
+  box-shadow: 0 1px 4px rgba(66,133,244,0.3);
+}
+.btn-primary:hover { box-shadow: 0 3px 10px rgba(66,133,244,0.35); transform: translateY(-1px); }
+.btn-secondary {
+  background: white;
+  color: var(--g-blue);
+  border: 1px solid var(--surface-med);
+}
+.btn-secondary:hover { background: var(--surface-light); border-color: var(--g-blue); }
+.btn-danger {
+  background: white;
+  color: var(--g-red);
+  border: 1px solid var(--alert-red-border);
+}
+.btn-danger:hover { background: var(--alert-red-bg); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 5px 10px;
+}
+.btn-ghost:hover { background: var(--surface-light); color: var(--text-primary); }
+
+/* ============================================================
+   PAGE: MEETING (Live View)
+   ============================================================ */
+.meeting-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 280px 260px;
+  grid-template-rows: 1fr 52px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.card-board {
+  padding: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--surface-med);
+}
+.card-board::-webkit-scrollbar { width: 4px; }
+.card-board::-webkit-scrollbar-thumb { background: var(--surface-med); border-radius: 4px; }
+
+.intel-card {
+  background: var(--surface-white);
+  border: 1px solid var(--surface-med);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-left: 3.5px solid transparent;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.intel-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.intel-card.alert { border-left-color: var(--g-red); background: linear-gradient(135deg, var(--alert-red-bg) 0%, var(--surface-white) 100%); }
+.intel-card.alert.flash { animation: borderFlash 0.6s ease 2; }
+.intel-card.battlecard { border-left-color: var(--g-yellow); background: linear-gradient(135deg, var(--alert-amber-bg) 0%, var(--surface-white) 100%); }
+.intel-card.context { border-left-color: var(--g-green); background: linear-gradient(135deg, var(--alert-green-bg) 0%, var(--surface-white) 100%); }
+.intel-card.strategy { border-left-color: var(--g-blue); background: linear-gradient(135deg, var(--alert-blue-bg) 0%, var(--surface-white) 100%); }
+
+.card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.card-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+.card-label.alert { background: var(--g-red); color: white; }
+.card-label.battlecard { background: var(--g-yellow); color: #7A4F00; }
+.card-label.context { background: var(--g-green); color: white; }
+.card-label.strategy { background: var(--g-blue); color: white; }
+
+.card-time {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.card-summary {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+.card-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--surface-med);
+  display: none;
+}
+.card-detail.open { display: block; }
+.card-agent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.card-agent-badge {
+  font-size: 9px;
+  font-weight: 600;
+  background: var(--g-purple);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.card-agent-text { color: var(--text-secondary); }
+.card-agent-text strong { color: var(--text-primary); font-weight: 500; }
+.card-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-top: 4px;
+}
+
+/* TRANSCRIPT */
+.transcript-panel {
+  padding: 16px 14px;
+  overflow-y: auto;
+  border-right: 1px solid var(--surface-med);
+  background: var(--surface-white);
+}
+.transcript-panel::-webkit-scrollbar { width: 4px; }
+.transcript-panel::-webkit-scrollbar-thumb { background: var(--surface-med); border-radius: 4px; }
+.transcript-header {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--surface-med);
+}
+.transcript-msg {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.transcript-msg.them { align-items: flex-start; }
+.transcript-msg.us { align-items: flex-end; }
+.transcript-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.transcript-bubble {
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.transcript-msg.them .transcript-bubble {
+  background: var(--surface-light);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+.transcript-msg.us .transcript-bubble {
+  background: var(--alert-blue-bg);
+  color: var(--text-primary);
+  border-bottom-right-radius: 4px;
+}
+
+/* CAMERA / VISION PANEL */
+.vision-panel {
+  padding: 14px;
+  overflow-y: auto;
+  background: var(--surface-white);
+}
+.vision-panel::-webkit-scrollbar { width: 4px; }
+.vision-panel::-webkit-scrollbar-thumb { background: var(--surface-med); border-radius: 4px; }
+.vision-section-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 8px;
+}
+.camera-preview {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--surface-dark);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.camera-preview-inner {
+  color: rgba(255,255,255,0.25);
+  font-size: 11px;
+  text-align: center;
+}
+.camera-preview-inner svg { width: 28px; height: 28px; opacity: 0.3; margin-bottom: 4px; display: block; margin: 0 auto 4px; }
+.camera-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  background: rgba(52,168,83,0.9);
+  color: white;
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.camera-badge .status-dot { width: 5px; height: 5px; background: white; }
+
+.body-lang { margin-bottom: 14px; }
+.emotion-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.emotion-emoji { font-size: 20px; }
+.emotion-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.emotion-conf {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.meter { margin-bottom: 8px; }
+.meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+.meter-bar {
+  height: 5px;
+  background: var(--surface-med);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+.meter-fill.gradient { background: var(--gemini-grad); }
+.meter-fill.blue { background: var(--g-blue); }
+.meter-fill.red { background: var(--g-red); }
+
+.scene-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+.scene-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.scene-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  background: var(--surface-light);
+  border: 1px solid var(--surface-med);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+.vision-alert {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--alert-blue-bg);
+  border: 1px solid var(--alert-blue-border);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  color: var(--g-blue);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+.vision-alert-icon { flex-shrink: 0; margin-top: 1px; }
+
+/* TIMELINE */
+.timeline-bar {
+  grid-column: 1 / -1;
+  background: var(--surface-white);
+  border-top: 1px solid var(--surface-med);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow-x: auto;
+}
+.timeline-bar::-webkit-scrollbar { height: 3px; }
+.timeline-event {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.tl-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tl-dot.red { background: var(--g-red); }
+.tl-dot.amber { background: var(--g-yellow); }
+.tl-dot.green { background: var(--g-green); }
+.tl-dot.blue { background: var(--g-blue); }
+.tl-connector {
+  width: 24px; height: 1px;
+  background: var(--surface-med);
+  flex-shrink: 0;
+}
+.tl-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   PAGE: REVIEW
+   ============================================================ */
+.review-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 36px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+.review-header {
+  margin-bottom: 24px;
+}
+.review-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.review-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.review-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--surface-med);
+  margin-bottom: 24px;
+}
+.review-tab {
+  padding: 10px 18px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.review-tab:hover { color: var(--text-primary); }
+.review-tab.active {
+  color: var(--g-blue);
+  font-weight: 500;
+  border-image: var(--gemini-grad) 1;
+}
+.review-doc {
+  background: var(--surface-white);
+  border: 1px solid var(--surface-med);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1.65;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  min-height: 340px;
+}
+.review-doc h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-top: 20px;
+  margin-bottom: 8px;
+  padding-left: 12px;
+  border-left: 3px solid;
+  border-image: var(--gemini-grad) 1;
+}
+.review-doc h3:first-child { margin-top: 0; }
+.review-doc p { margin-bottom: 10px; color: var(--text-secondary); }
+.review-doc ul { padding-left: 22px; margin-bottom: 10px; }
+.review-doc li { margin-bottom: 4px; color: var(--text-secondary); font-size: 13px; }
+.review-doc .risk { color: var(--g-red); font-weight: 500; }
+.review-doc .opp { color: var(--g-green); font-weight: 500; }
+.review-export {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* ============================================================
+   PAGE: MEMORY
+   ============================================================ */
+.memory-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+.memory-filters {
+  padding: 16px;
+  border-right: 1px solid var(--surface-med);
+  background: var(--surface-white);
+}
+.filter-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 8px;
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  margin-bottom: 2px;
+}
+.filter-item:hover { background: var(--surface-light); }
+.filter-item.active { background: var(--alert-blue-bg); color: var(--g-blue); font-weight: 500; }
+.filter-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.graph-area {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-light);
+}
+.graph-canvas {
+  width: 100%; height: 100%;
+}
+.graph-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+.graph-node:hover { transform: scale(1.08); }
+.node-circle {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: box-shadow 0.3s;
+}
+.graph-node:hover .node-circle {
+  box-shadow: 0 0 0 3px rgba(66,133,244,0.3), 0 4px 12px rgba(0,0,0,0.2);
+}
+.node-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  max-width: 80px;
+}
+.node-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.memory-cards-strip {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--surface-med);
+  background: var(--surface-white);
+  padding: 14px 20px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+.memory-card {
+  min-width: 180px;
+  padding: 12px 14px;
+  background: var(--surface-light);
+  border: 1px solid var(--surface-med);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.memory-card:hover { border-color: var(--g-blue); box-shadow: var(--shadow-sm); }
+.mc-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.mc-role { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+.mc-stat {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================================
+   PAGE: DASHBOARD HOME
+   ============================================================ */
+.home-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.home-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.home-hero h1 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  background: var(--gemini-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.home-hero p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 440px;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 280px);
+  gap: 16px;
+}
+.home-card {
+  background: var(--surface-white);
+  border: 1px solid var(--surface-med);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.home-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gemini-grad);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.home-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.home-card:hover::before { opacity: 1; }
+.home-card-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+.home-card h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.home-card p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.hidden { display: none !important; }
+.gemini-loading {
+  display: flex; gap: 4px; align-items: center; justify-content: center; padding: 20px;
+}
+.gemini-loading span {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gemini-grad);
+}
+.gemini-loading span:nth-child(1) { animation: dotPulse 1.4s infinite 0s; }
+.gemini-loading span:nth-child(2) { animation: dotPulse 1.4s infinite 0.2s; }
+.gemini-loading span:nth-child(3) { animation: dotPulse 1.4s infinite 0.4s; }
+
+svg.icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* SVG connector lines for the graph */
+.graph-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.graph-svg line {
+  stroke: var(--surface-med);
+  stroke-width: 1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">D</div>
+      <div class="sidebar-logo-text">
+        DealBoard
+        <span>AI Companion</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item" data-page="home" onclick="showPage('home')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </div>
+      <div class="nav-item active" data-page="meeting" onclick="showPage('meeting')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        Meeting
+        <span class="nav-badge" id="cardCount">3</span>
+      </div>
+      <div class="nav-item" data-page="review" onclick="showPage('review')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Review
+      </div>
+      <div class="nav-item" data-page="memory" onclick="showPage('memory')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/></svg>
+        Memory
+      </div>
+      <div class="nav-item" data-page="settings" onclick="showPage('settings')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-dot green"></div>
+      <span>Gemini connected</span>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="topTitle">Live Meeting</div>
+      <div class="topbar-pills" id="topPills"></div>
+      <div class="topbar-timer" id="topTimer">00:34:12</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btnGenerate" onclick="showPage('review')">✦ Generate Summary</button>
+        <button class="btn btn-danger btn-sm" id="btnEnd">End Meeting</button>
+      </div>
+    </div>
+
+    <!-- ============= PAGE: HOME ============= -->
+    <div class="home-content hidden" id="page-home">
+      <div class="home-hero">
+        <h1>Your Second Brain is Ready</h1>
+        <p>DealBoard listens, sees, and thinks alongside you — powered entirely by Google AI.</p>
+      </div>
+      <div class="home-grid">
+        <div class="home-card anim-fade-up" style="animation-delay:.05s" onclick="showPage('meeting')">
+          <div class="home-card-icon" style="background:var(--alert-blue-bg);color:var(--g-blue)">🎙</div>
+          <h3>Live Meeting</h3>
+          <p>Real-time intelligence cards, body language analysis, and AI-powered insights during your calls.</p>
+        </div>
+        <div class="home-card anim-fade-up" style="animation-delay:.12s" onclick="showPage('review')">
+          <div class="home-card-icon" style="background:var(--alert-green-bg);color:var(--g-green)">📄</div>
+          <h3>Post-Meeting Review</h3>
+          <p>Auto-generated summaries, follow-up emails, strategy briefs, and decision logs.</p>
+        </div>
+        <div class="home-card anim-fade-up" style="animation-delay:.19s" onclick="showPage('memory')">
+          <div class="home-card-icon" style="background:#F3E8FD;color:var(--g-purple)">🧠</div>
+          <h3>Knowledge Graph</h3>
+          <p>Your persistent memory — every interaction, person, decision, and pattern visualized.</p>
+        </div>
+        <div class="home-card anim-fade-up" style="animation-delay:.26s" onclick="showPage('settings')">
+          <div class="home-card-icon" style="background:var(--surface-light);color:var(--text-secondary)">⚙️</div>
+          <h3>Settings</h3>
+          <p>Configure API keys, feature toggles, model selection, and camera preferences.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= PAGE: MEETING ============= -->
+    <div class="meeting-content" id="page-meeting">
+
+      <!-- CARD BOARD -->
+      <div class="card-board" id="cardBoard">
+
+        <div class="intel-card alert flash anim-scale" style="animation-delay:0s" onclick="toggleDetail(this)">
+          <div class="card-header">
+            <span class="card-label alert">ALERT</span>
+            <span class="card-time">00:25:48</span>
+          </div>
+          <div class="card-summary"><strong>25% discount exceeds max grid</strong> — VP approval required for anything above 5%. Current authority ceiling: 5% / $8,000.</div>
+          <div class="card-detail">
+            <div class="card-agent">
+              <span class="card-agent-badge">SHEETS</span>
+              <span class="card-agent-text"><strong>Q:</strong> What is the max discount threshold?<br><strong>A:</strong> Discount policy sheet shows 5% max without VP sign-off. 25% is flagged red-zone.</span>
+            </div>
+            <div class="card-agent">
+              <span class="card-agent-badge">GMAIL</span>
+              <span class="card-agent-text"><strong>Q:</strong> Any precedent for >20% discount?<br><strong>A:</strong> One case found — MegaCorp deal Q3 2025, VP approved 22% for 3-year commitment.</span>
+            </div>
+            <span class="card-source">📊 source: Discount_Policy_2026.gsheet</span>
+          </div>
+        </div>
+
+        <div class="intel-card battlecard anim-slide-right" style="animation-delay:.15s" onclick="toggleDetail(this)">
+          <div class="card-header">
+            <span class="card-label battlecard">BATTLECARD</span>
+            <span class="card-time">00:12:35</span>
+          </div>
+          <div class="card-summary"><strong>Datadog detected</strong> — they use volume-based billing. Pitch our flat-rate model. Their avg. enterprise cost is 2.3x ours at scale.</div>
+          <div class="card-detail">
+            <div class="card-agent">
+              <span class="card-agent-badge">DRIVE</span>
+              <span class="card-agent-text"><strong>Q:</strong> Find competitive intel on Datadog<br><strong>A:</strong> Battlecard doc updated Feb 2026: Datadog's per-host pricing scales exponentially. Our flat-rate saves 40-60% at 200+ nodes.</span>
+            </div>
+            <div class="card-agent">
+              <span class="card-agent-badge">GMAIL</span>
+              <span class="card-agent-text"><strong>Q:</strong> Any recent Datadog wins/losses?<br><strong>A:</strong> Won 3 of last 5 competitive deals vs Datadog in Q4. Key differentiator: pricing predictability.</span>
+            </div>
+            <span class="card-source">📁 source: Competitive_Intel/Datadog_Battlecard.gdoc</span>
+          </div>
+        </div>
+
+        <div class="intel-card context anim-fade-up" style="animation-delay:.3s" onclick="toggleDetail(this)">
+          <div class="card-header">
+            <span class="card-label context">CONTEXT</span>
+            <span class="card-time">00:31:02</span>
+          </div>
+          <div class="card-summary"><strong>Contradiction detected</strong> — Prospect says "security isn't a concern" but CTO email from Dec 2025 flagged ISO 27001 as mandatory for all new vendors.</div>
+          <div class="card-detail">
+            <div class="card-agent">
+              <span class="card-agent-badge">GMAIL</span>
+              <span class="card-agent-text"><strong>Q:</strong> Any security-related emails from AcmeCorp?<br><strong>A:</strong> Dec 14 email from T. Martin (CTO): "All new vendors MUST have ISO 27001. No exceptions after the January audit."</span>
+            </div>
+            <div class="card-agent">
+              <span class="card-agent-badge">CALENDAR</span>
+              <span class="card-agent-text"><strong>Q:</strong> Any security meetings scheduled?<br><strong>A:</strong> AcmeCorp security audit scheduled Jan 28, 2026 — 3 weeks from now.</span>
+            </div>
+            <span class="card-source">📧 source: thomas.martin@acmecorp.com — Dec 14, 2025</span>
+          </div>
+        </div>
+
+        <div class="intel-card strategy anim-fade-up" style="animation-delay:.45s" onclick="toggleDetail(this)">
+          <div class="card-header">
+            <span class="card-label strategy">STRATEGY</span>
+            <span class="card-time">00:31:08</span>
+          </div>
+          <div class="card-summary"><strong>Proactive move recommended</strong> — Participant shows doubt on security topic. Address ISO 27001 compliance proactively to build credibility.</div>
+          <div class="card-detail">
+            <div class="card-agent">
+              <span class="card-agent-badge">VISION</span>
+              <span class="card-agent-text"><strong>Signal:</strong> Skepticism detected on prospect's face when discussing security. Engagement dropped 23%.</span>
+            </div>
+            <div class="card-agent">
+              <span class="card-agent-badge">ANALYSER</span>
+              <span class="card-agent-text"><strong>Recommendation:</strong> Mention your ISO 27001 certification unprompted. Reference the CTO email to show deep understanding of their needs. This builds trust.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TRANSCRIPT -->
+      <div class="transcript-panel">
+        <div class="transcript-header">Live Transcript</div>
+
+        <div class="transcript-msg them anim-fade-up" style="animation-delay:.1s">
+          <div class="transcript-meta"><span class="tl-dot amber" style="width:5px;height:5px"></span> Thomas Martin · <span class="tl-time">00:12:30</span></div>
+          <div class="transcript-bubble">We've been evaluating Datadog for our infrastructure monitoring needs. They gave us a pretty compelling demo last week.</div>
+        </div>
+        <div class="transcript-msg us anim-fade-up" style="animation-delay:.2s">
+          <div class="transcript-meta"><span class="tl-time">00:12:52</span> · You</div>
+          <div class="transcript-bubble">Interesting — I'd love to understand what stood out to you. We actually have some direct comparisons on the monitoring side that might be worth looking at.</div>
+        </div>
+        <div class="transcript-msg them anim-fade-up" style="animation-delay:.3s">
+          <div class="transcript-meta"><span class="tl-dot amber" style="width:5px;height:5px"></span> Thomas Martin · <span class="tl-time">00:25:40</span></div>
+          <div class="transcript-bubble">Look, to get this past the board, we'd need at least a 25% discount. That's just the reality of our procurement process right now.</div>
+        </div>
+        <div class="transcript-msg us anim-fade-up" style="animation-delay:.35s">
+          <div class="transcript-meta"><span class="tl-time">00:26:01</span> · You</div>
+          <div class="transcript-bubble">I appreciate the transparency, Thomas. Let me check what options we have on our side — I want to make sure we find the right structure that works for everyone.</div>
+        </div>
+        <div class="transcript-msg them anim-fade-up" style="animation-delay:.4s">
+          <div class="transcript-meta"><span class="tl-dot amber" style="width:5px;height:5px"></span> Thomas Martin · <span class="tl-time">00:31:00</span></div>
+          <div class="transcript-bubble">One thing I should mention — security isn't really a concern for us. We're pretty flexible on that front.</div>
+        </div>
+        <div class="transcript-msg us anim-fade-up" style="animation-delay:.45s">
+          <div class="transcript-meta"><span class="tl-time">00:31:25</span> · You</div>
+          <div class="transcript-bubble">Actually Thomas, I know your CTO flagged ISO 27001 as mandatory for all new vendors going into Q1. We're fully certified — happy to share our audit report.</div>
+        </div>
+      </div>
+
+      <!-- VISION / CAMERA PANEL -->
+      <div class="vision-panel">
+        <div class="vision-section-title">Camera Feed</div>
+        <div class="camera-preview">
+          <div class="camera-badge"><div class="status-dot green" style="width:5px;height:5px"></div> Live</div>
+          <div class="camera-preview-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            Camera Preview
+          </div>
+        </div>
+
+        <div class="vision-section-title" style="margin-top:10px">Body Language</div>
+        <div class="body-lang">
+          <div class="emotion-row">
+            <span class="emotion-emoji">😟</span>
+            <span class="emotion-label">Skeptical</span>
+            <span class="emotion-conf">87%</span>
+          </div>
+          <div class="meter">
+            <div class="meter-label"><span>Engagement</span><span>49%</span></div>
+            <div class="meter-bar"><div class="meter-fill red" style="width:49%"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-label"><span>Attention</span><span>72%</span></div>
+            <div class="meter-bar"><div class="meter-fill blue" style="width:72%"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-label"><span>Openness</span><span>34%</span></div>
+            <div class="meter-bar"><div class="meter-fill gradient" style="width:34%"></div></div>
+          </div>
+        </div>
+
+        <div class="vision-section-title">Scene Understanding</div>
+        <div class="scene-text">Meeting room — single participant at desk. Whiteboard visible in background with Q1 planning notes. Posture: leaning back, arms partially crossed.</div>
+        <div class="scene-tags">
+          <span class="scene-tag">Office</span>
+          <span class="scene-tag">Whiteboard</span>
+          <span class="scene-tag">Single person</span>
+          <span class="scene-tag">Crossed arms</span>
+        </div>
+
+        <div class="vision-alert" style="margin-top:12px">
+          <span class="vision-alert-icon">⚡</span>
+          <span>Engagement dropped <strong>23%</strong> when security was mentioned. Address proactively.</span>
+        </div>
+      </div>
+
+      <!-- TIMELINE BAR -->
+      <div class="timeline-bar">
+        <div class="timeline-event anim-pill" style="animation-delay:.1s">
+          <span class="tl-dot amber"></span>
+          <span class="tl-time">00:12</span>
+          <span>Competitor: Datadog</span>
+        </div>
+        <span class="tl-connector"></span>
+        <div class="timeline-event anim-pill" style="animation-delay:.2s">
+          <span class="tl-dot red"></span>
+          <span class="tl-time">00:25</span>
+          <span>Risk: 25% discount</span>
+        </div>
+        <span class="tl-connector"></span>
+        <div class="timeline-event anim-pill" style="animation-delay:.3s">
+          <span class="tl-dot green"></span>
+          <span class="tl-time">00:31</span>
+          <span>Contradiction: Security</span>
+        </div>
+        <span class="tl-connector"></span>
+        <div class="timeline-event anim-pill" style="animation-delay:.4s">
+          <span class="tl-dot blue"></span>
+          <span class="tl-time">00:31</span>
+          <span>Strategy: Address ISO</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= PAGE: REVIEW ============= -->
+    <div class="review-content hidden" id="page-review">
+      <div class="review-header">
+        <div class="review-title">Meeting Review — AcmeCorp Call</div>
+        <div class="review-meta">
+          <span>📅 March 14, 2026</span>
+          <span>⏱ Duration: 34:12</span>
+          <span>👥 Participants: 2</span>
+          <span>✅ Decisions: 4</span>
+        </div>
+      </div>
+      <div class="review-tabs">
+        <div class="review-tab active" onclick="showReviewTab(this, 'summary')">Summary</div>
+        <div class="review-tab" onclick="showReviewTab(this, 'followup')">Follow-up Email</div>
+        <div class="review-tab" onclick="showReviewTab(this, 'strategy')">Strategy Brief</div>
+        <div class="review-tab" onclick="showReviewTab(this, 'decisions')">Decision Log</div>
+      </div>
+
+      <div class="review-doc" id="tab-summary">
+        <h3>Executive Overview</h3>
+        <p>Meeting with Thomas Martin (CTO, AcmeCorp) regarding their infrastructure monitoring evaluation. The prospect is actively comparing our solution against Datadog and signaled significant pricing pressure. A critical security contradiction was surfaced by AI analysis.</p>
+        <h3>Key Topics Discussed</h3>
+        <ul>
+          <li><strong>Competitor Evaluation:</strong> AcmeCorp received a Datadog demo last week. They were impressed but no commitment has been made.</li>
+          <li><strong>Pricing & Discount:</strong> Thomas requested 25% discount citing board requirements. This exceeds our 5% authority ceiling.</li>
+          <li><strong>Security Posture:</strong> Thomas claimed security "isn't a concern" — contradicted by his own Dec 2025 email mandating ISO 27001 for all new vendors.</li>
+        </ul>
+        <h3>AI-Surfaced Insights</h3>
+        <ul>
+          <li>Body language showed <strong class="risk">skepticism (87%)</strong> when security was raised — engagement dropped 23%.</li>
+          <li>Our flat-rate pricing saves 40-60% vs. Datadog at 200+ nodes — key lever for the pricing discussion.</li>
+          <li>Security audit scheduled Jan 28 — creates urgency for vendor compliance proof.</li>
+        </ul>
+        <h3>Recommended Next Steps</h3>
+        <ul>
+          <li><strong class="opp">Send ISO 27001 certification</strong> within 24 hours to build trust.</li>
+          <li>Prepare a custom pricing comparison vs. Datadog for their specific node count.</li>
+          <li>Loop in VP for discount discussion — propose 12% with 2-year commitment as counter-offer.</li>
+          <li>Schedule follow-up before Jan 28 audit deadline.</li>
+        </ul>
+      </div>
+
+      <div class="review-doc hidden" id="tab-followup">
+        <h3>Follow-up Email Draft</h3>
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:14px">Auto-generated by Strategy Agent — edit before sending</p>
+        <div style="background:var(--surface-light);padding:16px;border-radius:var(--radius-sm);margin-bottom:12px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><strong>To:</strong> thomas.martin@acmecorp.com</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px"><strong>Subject:</strong> Follow-up: Infrastructure Monitoring Discussion + ISO 27001 Docs</div>
+          <p style="font-size:13px;line-height:1.6">Hi Thomas,<br><br>Great conversation today — I appreciate you being upfront about the evaluation timeline and pricing expectations.<br><br>A few things I wanted to follow up on:<br><br><strong>1. ISO 27001 Certification</strong> — Attached is our current certificate and latest audit report. I know compliance is a priority heading into your January audit, so wanted to get this to you right away.<br><br><strong>2. Pricing Comparison</strong> — I'm putting together a side-by-side with Datadog based on your infrastructure scale. Our flat-rate model tends to save 40-60% at your volume — I'll have specifics for you by Thursday.<br><br><strong>3. Discount Discussion</strong> — I've flagged this internally and am working on a structure that works for both sides. More to come.<br><br>Can we schedule 20 minutes next week to walk through the comparison?<br><br>Best,<br>[Your name]</p>
+        </div>
+      </div>
+
+      <div class="review-doc hidden" id="tab-strategy">
+        <h3>Position Analysis</h3>
+        <p>AcmeCorp is in active evaluation phase with decision expected before Q1 audit (Jan 28). We have a window of approximately 6 weeks. Datadog is the primary competitor. The prospect has pricing leverage but a hidden security compliance need that favors us.</p>
+        <h3>Risks</h3>
+        <ul>
+          <li><strong class="risk">HIGH — Pricing gap:</strong> 25% discount request is 5x our standard authority. Risk of stalemate if VP doesn't approve counter-offer.</li>
+          <li><strong class="risk">MEDIUM — Competitor momentum:</strong> Datadog demo was recent and "compelling" per prospect. Timing is critical.</li>
+          <li><strong class="risk">LOW — Internal misalignment:</strong> CTO vs. procurement may have different priorities (security vs. cost). Could cause internal delays.</li>
+        </ul>
+        <h3>Opportunities</h3>
+        <ul>
+          <li><strong class="opp">HIGH — Security compliance:</strong> ISO 27001 mandate is our strongest differentiator. Datadog's compliance story is weaker in this area.</li>
+          <li><strong class="opp">HIGH — Pricing narrative:</strong> Reframe from "discount" to "total cost of ownership" — our flat-rate saves 40-60% at scale.</li>
+          <li><strong class="opp">MEDIUM — Audit deadline:</strong> Jan 28 audit creates natural urgency that favors action.</li>
+        </ul>
+      </div>
+
+      <div class="review-doc hidden" id="tab-decisions">
+        <h3>Decision Log</h3>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px">
+            <thead>
+              <tr style="border-bottom:2px solid var(--surface-med);text-align:left">
+                <th style="padding:8px 10px;color:var(--text-muted);font-weight:500">Decision</th>
+                <th style="padding:8px 10px;color:var(--text-muted);font-weight:500">Owner</th>
+                <th style="padding:8px 10px;color:var(--text-muted);font-weight:500">Deadline</th>
+                <th style="padding:8px 10px;color:var(--text-muted);font-weight:500">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--surface-med)">
+                <td style="padding:10px">Send ISO 27001 certification</td>
+                <td style="padding:10px">You</td>
+                <td style="padding:10px;font-family:var(--font-mono);font-size:11px">Mar 15</td>
+                <td style="padding:10px"><span class="pill green" style="font-size:10px;cursor:default"><span class="pill-dot"></span>New</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--surface-med)">
+                <td style="padding:10px">Prepare Datadog pricing comparison</td>
+                <td style="padding:10px">You</td>
+                <td style="padding:10px;font-family:var(--font-mono);font-size:11px">Mar 18</td>
+                <td style="padding:10px"><span class="pill green" style="font-size:10px;cursor:default"><span class="pill-dot"></span>New</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--surface-med)">
+                <td style="padding:10px">Get VP approval for discount counter-offer</td>
+                <td style="padding:10px">You + VP Sales</td>
+                <td style="padding:10px;font-family:var(--font-mono);font-size:11px">Mar 17</td>
+                <td style="padding:10px"><span class="pill amber" style="font-size:10px;cursor:default"><span class="pill-dot"></span>Pending</span></td>
+              </tr>
+              <tr style="background:var(--alert-red-bg)">
+                <td style="padding:10px;color:var(--g-red);font-weight:500">⚠ "Security isn't a concern" — contradicts CTO mandate</td>
+                <td style="padding:10px">Thomas Martin</td>
+                <td style="padding:10px;font-family:var(--font-mono);font-size:11px">—</td>
+                <td style="padding:10px"><span class="pill red" style="font-size:10px;cursor:default"><span class="pill-dot"></span>Contradiction</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="review-export">
+        <button class="btn btn-secondary btn-sm">📋 Copy to Clipboard</button>
+        <button class="btn btn-secondary btn-sm">⬇ Download .md</button>
+        <button class="btn btn-primary btn-sm">✉ Open in Gmail</button>
+      </div>
+    </div>
+
+    <!-- ============= PAGE: MEMORY ============= -->
+    <div class="memory-content hidden" id="page-memory">
+      <div class="memory-filters">
+        <div class="filter-title">Filters</div>
+        <div class="filter-item active"><div class="filter-dot" style="background:var(--g-blue)"></div> All</div>
+        <div class="filter-item"><div class="filter-dot" style="background:var(--g-blue)"></div> People</div>
+        <div class="filter-item"><div class="filter-dot" style="background:var(--g-purple)"></div> Companies</div>
+        <div class="filter-item"><div class="filter-dot" style="background:var(--g-green)"></div> Topics</div>
+        <div class="filter-item"><div class="filter-dot" style="background:var(--g-yellow)"></div> Decisions</div>
+        <div style="margin-top:20px">
+          <div class="filter-title">Stats</div>
+          <div style="font-size:22px;font-weight:500;font-family:var(--font-display);color:var(--text-primary)">142</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">interactions stored</div>
+          <div style="font-size:22px;font-weight:500;font-family:var(--font-display);color:var(--text-primary)">23</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">people tracked</div>
+          <div style="font-size:22px;font-weight:500;font-family:var(--font-display);color:var(--text-primary)">67</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">decisions logged</div>
+          <div style="font-size:22px;font-weight:500;font-family:var(--font-display);color:var(--text-primary)">12</div>
+          <div style="font-size:11px;color:var(--text-muted)">patterns detected</div>
+        </div>
+      </div>
+
+      <div class="graph-area" id="graphArea">
+        <svg class="graph-svg" id="graphSvg"></svg>
+        <!-- Nodes rendered by JS -->
+      </div>
+
+      <div class="memory-cards-strip">
+        <div class="memory-card">
+          <div class="mc-name">Thomas Martin</div>
+          <div class="mc-role">CTO · AcmeCorp</div>
+          <div class="mc-stat">🗓 5 meetings · Last: today</div>
+        </div>
+        <div class="memory-card">
+          <div class="mc-name">Sarah Chen</div>
+          <div class="mc-role">VP Engineering · AcmeCorp</div>
+          <div class="mc-stat">🗓 3 meetings · Last: Mar 7</div>
+        </div>
+        <div class="memory-card">
+          <div class="mc-name">AcmeCorp Deal</div>
+          <div class="mc-role">Enterprise · $175K ARR</div>
+          <div class="mc-stat">📊 Stage: Evaluation · Q1 close</div>
+        </div>
+        <div class="memory-card">
+          <div class="mc-name">Pattern: Pricing</div>
+          <div class="mc-role">Detected across 4 deals</div>
+          <div class="mc-stat">💡 "Thomas always pushes on discount first"</div>
+        </div>
+        <div class="memory-card">
+          <div class="mc-name">ISO 27001</div>
+          <div class="mc-role">Compliance · Critical</div>
+          <div class="mc-stat">🔗 Linked to 7 contacts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= PAGE: SETTINGS (stub) ============= -->
+    <div class="home-content hidden" id="page-settings" style="align-items:flex-start;max-width:640px;margin:0 auto">
+      <div style="width:100%">
+        <h2 style="font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:20px">Settings</h2>
+        <div style="background:var(--surface-white);border:1px solid var(--surface-med);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:500;margin-bottom:12px">Google Cloud</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:12.5px;color:var(--text-secondary);width:120px">Gemini API Key</span>
+            <div style="flex:1;padding:6px 10px;background:var(--surface-light);border:1px solid var(--surface-med);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">••••••••••••••••3F2a</div>
+            <div class="status-dot green"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12.5px;color:var(--text-secondary);width:120px">GWS CLI</span>
+            <div style="flex:1;padding:6px 10px;background:var(--surface-light);border:1px solid var(--surface-med);border-radius:var(--radius-sm);font-size:12px;color:var(--g-green)">✓ Authenticated</div>
+            <div class="status-dot green"></div>
+          </div>
+        </div>
+        <div style="background:var(--surface-white);border:1px solid var(--surface-med);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:500;margin-bottom:12px">Feature Flags</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" checked style="accent-color:var(--g-blue)"> Vision Agent (Body Language + Scene)
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" checked style="accent-color:var(--g-blue)"> Memory Agent (Knowledge Graph)
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" checked style="accent-color:var(--g-blue)"> Strategy Agent (Post-meeting Docs)
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" style="accent-color:var(--g-blue)"> Fallback Mode (Mock Data)
+            </label>
+          </div>
+        </div>
+        <div style="background:var(--surface-white);border:1px solid var(--surface-med);border-radius:var(--radius-lg);padding:20px">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:500;margin-bottom:12px">Models</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+              <span style="color:var(--text-secondary);width:120px">Listener</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--g-blue)">gemini-2.5-flash</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+              <span style="color:var(--text-secondary);width:120px">Vision</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--g-purple)">gemini-2.5-pro</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+              <span style="color:var(--text-secondary);width:120px">Strategy</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--g-purple)">gemini-2.5-pro</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+              <span style="color:var(--text-secondary);width:120px">Memory</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--g-blue)">gemini-2.5-flash</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function showPage(page) {
+  // Hide all pages
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+  // Show target
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.remove('hidden');
+
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+
+  // Update topbar
+  const titles = { home: 'Home', meeting: 'Live Meeting', review: 'Post-Meeting Review', memory: 'Your Second Brain', settings: 'Settings' };
+  document.getElementById('topTitle').textContent = titles[page] || page;
+
+  // Show/hide meeting-specific topbar items
+  const isMeeting = page === 'meeting';
+  document.getElementById('topTimer').style.display = isMeeting ? '' : 'none';
+  document.getElementById('btnEnd').style.display = isMeeting ? '' : 'none';
+  document.getElementById('btnGenerate').style.display = (isMeeting || page === 'review') ? '' : 'none';
+  document.getElementById('topPills').innerHTML = '';
+
+  if (isMeeting) {
+    renderPills();
+  }
+
+  // Render graph nodes on memory page
+  if (page === 'memory') {
+    setTimeout(renderGraph, 100);
+  }
+}
+
+/* ============================================================
+   PILLS
+   ============================================================ */
+function renderPills() {
+  const pills = [
+    { cls: 'amber', text: 'Competitor: Datadog' },
+    { cls: 'red', text: 'Risk: 25% discount' },
+    { cls: 'green', text: 'Contradiction detected' },
+    { cls: 'blue', text: 'Strategy ready' },
+  ];
+  const container = document.getElementById('topPills');
+  pills.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = `pill ${p.cls} anim-pill`;
+    el.style.animationDelay = `${i * 0.12}s`;
+    el.innerHTML = `<span class="pill-dot"></span>${p.text}`;
+    container.appendChild(el);
+  });
+}
+
+/* ============================================================
+   CARD EXPAND / COLLAPSE
+   ============================================================ */
+function toggleDetail(card) {
+  const detail = card.querySelector('.card-detail');
+  if (detail) detail.classList.toggle('open');
+}
+
+/* ============================================================
+   REVIEW TABS
+   ============================================================ */
+function showReviewTab(tabEl, tabId) {
+  document.querySelectorAll('.review-tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  ['summary', 'followup', 'strategy', 'decisions'].forEach(id => {
+    const el = document.getElementById('tab-' + id);
+    if (el) el.classList.toggle('hidden', id !== tabId);
+  });
+}
+
+/* ============================================================
+   KNOWLEDGE GRAPH (simple force-like layout)
+   ============================================================ */
+function renderGraph() {
+  const area = document.getElementById('graphArea');
+  const svg = document.getElementById('graphSvg');
+  const w = area.offsetWidth;
+  const h = area.offsetHeight;
+
+  // Remove old nodes
+  area.querySelectorAll('.graph-node').forEach(n => n.remove());
+  svg.innerHTML = '';
+
+  const nodes = [
+    { id: 'acme', label: 'AcmeCorp', sub: 'Enterprise', color: '#A142F4', emoji: '🏢', x: 0.5, y: 0.38 },
+    { id: 'thomas', label: 'Thomas Martin', sub: 'CTO', color: '#4285F4', emoji: 'TM', x: 0.28, y: 0.22 },
+    { id: 'sarah', label: 'Sarah Chen', sub: 'VP Eng', color: '#4285F4', emoji: 'SC', x: 0.72, y: 0.2 },
+    { id: 'pricing', label: 'Pricing', sub: 'Topic', color: '#34A853', emoji: '💰', x: 0.22, y: 0.55 },
+    { id: 'security', label: 'Security', sub: 'Topic', color: '#34A853', emoji: '🔒', x: 0.75, y: 0.52 },
+    { id: 'iso', label: 'ISO 27001', sub: 'Compliance', color: '#FBBC04', emoji: '📋', x: 0.6, y: 0.68 },
+    { id: 'datadog', label: 'Datadog', sub: 'Competitor', color: '#EA4335', emoji: 'DD', x: 0.38, y: 0.72 },
+    { id: 'discount', label: '25% Discount', sub: 'Decision', color: '#FBBC04', emoji: '⚠', x: 0.15, y: 0.38 },
+  ];
+
+  const edges = [
+    ['thomas', 'acme'], ['sarah', 'acme'], ['thomas', 'pricing'], ['thomas', 'security'],
+    ['security', 'iso'], ['acme', 'datadog'], ['pricing', 'discount'], ['sarah', 'iso'],
+    ['acme', 'iso'], ['datadog', 'pricing']
+  ];
+
+  // Get absolute positions
+  const pos = {};
+  nodes.forEach(n => {
+    pos[n.id] = { x: n.x * w, y: n.y * h };
+  });
+
+  // Draw edges
+  edges.forEach(([a, b]) => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pos[a].x);
+    line.setAttribute('y1', pos[a].y);
+    line.setAttribute('x2', pos[b].x);
+    line.setAttribute('y2', pos[b].y);
+    svg.appendChild(line);
+  });
+
+  // Draw nodes
+  nodes.forEach((n, i) => {
+    const el = document.createElement('div');
+    el.className = 'graph-node anim-scale';
+    el.style.animationDelay = `${i * 0.06}s`;
+    el.style.left = `${pos[n.id].x - 22}px`;
+    el.style.top = `${pos[n.id].y - 22}px`;
+    const isEmoji = n.emoji.length > 2;
+    el.innerHTML = `
+      <div class="node-circle" style="background:${n.color}">${isEmoji ? n.emoji : n.emoji}</div>
+      <div class="node-label">${n.label}</div>
+      <div class="node-sub">${n.sub}</div>
+    `;
+    area.appendChild(el);
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+showPage('meeting');
+renderPills();
+</script>
+
+</body>
+</html>
