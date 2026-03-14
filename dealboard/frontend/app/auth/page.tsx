@@ -37,6 +37,26 @@ import {
   CheckCircle,
 } from 'lucide-react';
 
+type GoogleCredentialResponse = {
+  credential?: string;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: GoogleCredentialResponse) => void;
+          }) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
+
 // ── Feature list shown on the left column ────────────────
 
 const FEATURES = [
@@ -77,6 +97,49 @@ export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  function decodeJwtPayload(token: string) {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) {
+      return null;
+    }
+
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const json = atob(padded);
+    return JSON.parse(json);
+  }
+
+  function finishSignIn(user: { name: string; email: string; avatar: string | null }) {
+    localStorage.setItem('dealboard_auth', 'true');
+    localStorage.setItem('dealboard_user', JSON.stringify(user));
+    router.push('/dashboard');
+  }
+
+  function handleGoogleCredential(response: GoogleCredentialResponse) {
+    try {
+      if (!response.credential) {
+        throw new Error('No Google credential returned');
+      }
+
+      const payload = decodeJwtPayload(response.credential);
+      if (!payload?.email) {
+        throw new Error('Google sign-in did not return a valid profile');
+      }
+
+      finishSignIn({
+        name: payload.name || payload.email,
+        email: payload.email,
+        avatar: payload.picture || null,
+      });
+    } catch {
+      setLoading(false);
+      setAuthError('Google sign-in failed. Please try again.');
+    }
+  }
 
   // If already authenticated, skip to dashboard
   useEffect(() => {
@@ -88,22 +151,56 @@ export default function AuthPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (!googleClientId) {
+      setAuthError('Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID in frontend .env.local');
+      return;
+    }
+
+    const scriptId = 'google-identity-services';
+    const existingScript = document.getElementById(scriptId);
+
+    const initialize = () => {
+      window.google?.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+      });
+    };
+
+    if (existingScript) {
+      initialize();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initialize;
+    script.onerror = () => setAuthError('Unable to load Google sign-in SDK.');
+    document.head.appendChild(script);
+  }, [googleClientId]);
+
   /**
    * handleSignIn
-   * Simulates Google OAuth sign-in by storing auth flag in localStorage
-   * and navigating to the dashboard.
+   * Starts Google Identity Services sign-in.
    */
   async function handleSignIn() {
+    setAuthError(null);
+
+    if (!googleClientId) {
+      setAuthError('Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID in frontend .env.local');
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      setAuthError('Google sign-in is still loading. Please try again in a second.');
+      return;
+    }
+
     setLoading(true);
-    // Simulate brief OAuth round-trip delay
-    await new Promise((r) => setTimeout(r, 800));
-    localStorage.setItem('dealboard_auth', 'true');
-    localStorage.setItem('dealboard_user', JSON.stringify({
-      name:   'Sarah Chen',
-      email:  'sarah.chen@acmecorp.com',
-      avatar: null,
-    }));
-    router.push('/dashboard');
+    window.google.accounts.id.prompt();
   }
 
   if (checkingAuth) {
@@ -237,6 +334,12 @@ export default function AuthPage() {
             {loading ? 'Signing in…' : 'Sign in with Google'}
           </button>
 
+          {authError && (
+            <p className="text-xs mt-3 text-center" style={{ color: '#EA4335' }}>
+              {authError}
+            </p>
+          )}
+
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px" style={{ backgroundColor: '#E8EAED' }} />
@@ -246,7 +349,11 @@ export default function AuthPage() {
 
           {/* Demo mode button */}
           <button
-            onClick={handleSignIn}
+            onClick={() => finishSignIn({
+              name: 'Demo User',
+              email: 'demo@dealboard.local',
+              avatar: null,
+            })}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border
               transition-all duration-150 text-sm font-medium
