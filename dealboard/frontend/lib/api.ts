@@ -51,6 +51,10 @@ export const api = {
   triggerScan: () =>
     request<any>('/api/scanner/trigger', { method: 'POST' }),
 
+  // Visio
+  createMeet: () =>
+    request<any>('/api/visio/create-meet', { method: 'POST' }),
+
   // Auth
   logout: () =>
     request<any>('/auth/logout', { method: 'POST' }),

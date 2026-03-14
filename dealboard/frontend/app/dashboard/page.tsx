@@ -14,6 +14,7 @@ import Sidebar, { Page } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import SettingsPanel from './components/SettingsPanel';
 import DashboardPanel from './components/DashboardPanel';
+import VisioPanel from './components/VisioPanel';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -99,6 +100,9 @@ export default function DashboardPage() {
               geminiConnected={status?.gemini?.connected ?? false}
               onNeedSettings={() => setCurrentPage('settings')}
             />
+          )}
+          {currentPage === 'visio' && (
+            <VisioPanel />
           )}
           {currentPage === 'settings' && (
             <div className="h-full overflow-y-auto bg-canvas">

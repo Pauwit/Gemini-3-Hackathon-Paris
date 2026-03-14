@@ -9,63 +9,56 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
-const ORCHESTRATOR_MODEL = 'gemini-2.5-flash'; // fast, just picks agents
-const ANSWER_MODEL = 'gemini-2.5-pro';              // smarter, reasons with context
+const ORCHESTRATOR_MODEL = 'gemini-3-flash-lite-preview';
+const ANSWER_MODEL = 'gemini-3-flash-lite-preview';
 
 /**
  * Step 1 — Orchestrator.
  * Analyzes the question and returns which agents to invoke + their search queries.
- *
- * @returns {{ agents: string[], queries: { gmail?: string, drive?: string, calendar?: boolean }, reasoning: string }}
+ * Now improved to handle transcription errors by cross-referencing known entity names.
  */
-async function orchestrate(apiKey, question) {
+async function orchestrate(apiKey, question, knownEntities = []) {
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: ORCHESTRATOR_MODEL });
 
-  const prompt = `You are an AI orchestrator deciding which Google Workspace data sources to query in order to answer a user question.
+  const entityContext = knownEntities.length > 0 
+    ? `Known files/projects: ${knownEntities.join(', ')}`
+    : '';
 
-Available sources:
-- "gmail"    : user's emails — use for questions about emails, messages, conversations, invoices, newsletters
-- "drive"    : user's Google Drive files — use for questions about documents, files, reports, spreadsheets, presentations
-- "calendar" : user's Google Calendar — use for questions about meetings, events, schedule, agenda, availability
+  const prompt = `You are an AI orchestrator. The user is in a live meeting.
+${entityContext}
+User said: "${question}"
 
-User question: "${question}"
+Task: Generate MULTIPLE parallel search queries to ensure we find the right data even if the transcript is slightly off.
 
-Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation outside the JSON):
+Respond ONLY with a valid JSON object:
 {
-  "agents": ["gmail"],
+  "correctedQuestion": "cleaned transcript",
+  "agents": ["gmail", "drive"],
   "queries": {
-    "gmail": "concise keyword search query for gmail",
-    "drive": "concise keyword search query for drive",
+    "gmail": ["primary search", "alternative search 1", "alternative search 2"],
+    "drive": ["primary search", "alternative search 1", "alternative search 2"],
     "calendar": true
-  },
-  "reasoning": "one sentence explaining your choice"
+  }
 }
 
 Rules:
-- Only include in "agents" the sources that are actually relevant to the question
-- For "gmail" and "drive", provide a short keyword search string
-- For "calendar": use the boolean true for general schedule/agenda questions, or provide a keyword string when searching for a specific event (e.g. a birthday, a meeting with someone)
-- IMPORTANT: always write search queries in the SAME language as the user's question — never translate to English
-- If a source is not in "agents", omit its key from "queries"`;
+- Provide 2-3 distinct queries per agent to cover different naming conventions.
+- Use the known entities to guide the queries.`;
 
-  logger.debug('Orchestrator analyzing question...');
+  logger.debug('Orchestrator generating multi-queries...');
   const result = await model.generateContent(prompt);
   const text = result.response.text();
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Orchestrator returned invalid JSON');
 
-  const decision = JSON.parse(jsonMatch[0]);
-  logger.info(`Orchestrator decision: agents=${decision.agents.join(', ')} | ${decision.reasoning}`);
-  return decision;
+  return JSON.parse(jsonMatch[0]);
 }
 
 /**
  * Step 2 — Final answer.
  * Uses the aggregated workspace context to answer the user's question.
- *
- * @returns {{ answer: string, sources: string[] }}
  */
 async function answerWithContext(apiKey, question, workspaceData) {
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -74,25 +67,32 @@ async function answerWithContext(apiKey, question, workspaceData) {
   const context = formatWorkspaceContext(workspaceData);
   const hasData = workspaceData.sourcesUsed.length > 0;
 
-  const prompt = `You are a helpful AI assistant with access to a user's Google Workspace data.
+  const prompt = `You are a live meeting assistant. Your job is to provide ULTRA-CONCISE insights.
 
 ${hasData
-    ? `Here is the relevant data retrieved from the user's workspace:\n\n${context}`
-    : 'No relevant workspace data was found for this question.'}
+    ? `WORKSPACE DATA:\n${context}`
+    : 'No data found.'}
 
-User question: "${question}"
+USER TOPIC: "${question}"
 
-Instructions:
-- Answer based solely on the workspace data above
-- Be concise and direct
-- Mention which source (Gmail, Drive, Calendar) the information came from
-- If the data doesn't contain the answer, say so clearly and suggest what the user could check
-- Use plain text — bullet points are fine, but no markdown headers`;
+STRICT RULES:
+1. NO INTROS (No "Bonjour", "Based on...", "I found..."). Start directly with the fact.
+2. ONE SENTENCE MAX for the core info.
+3. Use a clear, short title.
+4. If no specific data is found, respond with "NULL_VOID".
+5. Mention the source (e.g., [Drive] or [Gmail]) at the end.
 
-  logger.debug('Generating final answer...');
+FORMAT:
+TITLE: <Short Title>
+INSIGHT: <One punchy sentence> (<Source>)`;
+
+  logger.debug('Generating surgical live answer...');
   const result = await model.generateContent(prompt);
-  const answer = result.response.text();
-  logger.info('Final answer generated');
+  let answer = result.response.text().trim();
+  
+  if (answer.includes('NULL_VOID')) return { answer: null, sources: [] };
+
+  logger.info('Live answer generated');
 
   return {
     answer,

@@ -110,32 +110,29 @@ async function gmailAgent(gmail, query) {
  */
 async function driveAgent(drive, query) {
   try {
-    // Sanitize query: remove quotes and special chars that break the Drive API
-    const safe = query.replace(/['"\\]/g, '').trim();
-    const firstWord = safe.split(' ')[0];
+    const safeQuery = query.replace(/['"\\]/g, '').trim();
+    if (!safeQuery) return [];
 
-    // Search both by file name and full text content
-    const driveQuery = `(name contains '${firstWord}' or fullText contains '${firstWord}') and trashed = false`;
-    logger.debug(`Drive query: ${driveQuery}`);
+    // Search for the full phrase in name or content
+    const driveQuery = `(name contains '${safeQuery}' or fullText contains '${safeQuery}') and trashed = false`;
+    logger.debug(`Drive search: ${driveQuery}`);
 
     const listRes = await drive.files.list({
       q: driveQuery,
-      pageSize: 10,
+      pageSize: 5,
       fields: 'files(id, name, mimeType, modifiedTime, webViewLink)',
     });
 
     const files = listRes.data.files || [];
     const results = [];
 
-    for (const file of files.slice(0, 3)) {
+    for (const file of files) {
       let content = '';
       if (file.mimeType === 'application/vnd.google-apps.document') {
         try {
           const exportRes = await drive.files.export({ fileId: file.id, mimeType: 'text/plain' });
-          content = (exportRes.data || '').toString().slice(0, 800);
-        } catch (exportErr) {
-          logger.warn(`Could not export file ${file.name}:`, exportErr.message);
-        }
+          content = (exportRes.data || '').toString().slice(0, 1000);
+        } catch (err) { /* ignore export errors */ }
       }
       results.push({
         id: file.id,
@@ -149,7 +146,7 @@ async function driveAgent(drive, query) {
 
     return results;
   } catch (err) {
-    logger.error('Drive agent error:', err.message, err.response?.data || '');
+    logger.error('Drive agent error:', err.message);
     return [];
   }
 }

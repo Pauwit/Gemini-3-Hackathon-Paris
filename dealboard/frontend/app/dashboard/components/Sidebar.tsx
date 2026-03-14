@@ -1,10 +1,11 @@
 'use client';
 
-export type Page = 'dashboard' | 'chat' | 'settings';
+export type Page = 'dashboard' | 'chat' | 'visio' | 'settings';
 
 const ITEMS: { id: Page; label: string; emoji: string }[] = [
   { id: 'dashboard', label: 'Dashboard', emoji: '✦' },
   { id: 'chat',      label: 'Chat',      emoji: '💬' },
+  { id: 'visio',     label: 'Visio',     emoji: '🎥' },
   { id: 'settings',  label: 'Settings',  emoji: '⚙️' },
 ];
 

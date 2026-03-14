@@ -19,6 +19,7 @@ const settingsRoutes = require('./routes/settings-routes');
 const chatRoutes = require('./routes/chat-routes');
 const insightsRoutes = require('./routes/insights-routes');
 const scannerRoutes = require('./routes/scanner-routes');
+const visioRoutes = require('./routes/visio-routes');
 
 // Scanner
 const { startScanner } = require('./services/scanner-service');
@@ -60,6 +61,7 @@ app.use(settingsRoutes);
 app.use(chatRoutes);
 app.use(insightsRoutes);
 app.use(scannerRoutes);
+app.use(visioRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
