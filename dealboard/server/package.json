@@ -1,0 +1,20 @@
+{
+  "name": "dealboard-server",
+  "version": "1.0.0",
+  "description": "DealBoard AI Companion backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "passport": "^0.6.0",
+    "passport-google-oauth20": "^2.0.0",
+    "googleapis": "^129.0.0",
+    "@google/generative-ai": "^0.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  }
+}

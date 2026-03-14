@@ -1,1 +1,0 @@
-# Gemini-3-Hackathon-Paris
