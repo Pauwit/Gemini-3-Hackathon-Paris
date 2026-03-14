@@ -1,0 +1,21 @@
+{
+  "name": "dealboard-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node scripts/test-pipeline.js",
+    "test:listener": "node scripts/test-listener.js",
+    "test:analyser": "node scripts/test-analyser.js",
+    "test:strategy": "node scripts/test-strategy.js",
+    "test:memory": "node scripts/test-memory.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "ws": "^8.16.0",
+    "cors": "^2.8.5",
+    "@google/generative-ai": "^0.21.0",
+    "uuid": "^9.0.0"
+  }
+}

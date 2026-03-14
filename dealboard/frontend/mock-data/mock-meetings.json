@@ -1,0 +1,29 @@
+[
+  {
+    "id": "meeting-001",
+    "title": "AcmeCorp Q1 Sales Review with TechVentures",
+    "date": "2024-01-15T10:00:00Z",
+    "duration": 60,
+    "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"],
+    "cardCount": 5,
+    "documentCount": 4
+  },
+  {
+    "id": "meeting-oct-2023",
+    "title": "TechVentures Initial Discovery Call",
+    "date": "2023-10-15T14:00:00Z",
+    "duration": 45,
+    "participants": ["Sarah Chen", "Marcus Johnson"],
+    "cardCount": 2,
+    "documentCount": 1
+  },
+  {
+    "id": "meeting-nov-2023",
+    "title": "TechVentures Pricing Proposal Delivery",
+    "date": "2023-11-20T11:00:00Z",
+    "duration": 30,
+    "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"],
+    "cardCount": 3,
+    "documentCount": 2
+  }
+]

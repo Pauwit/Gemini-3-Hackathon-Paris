@@ -1,0 +1,35 @@
+{
+  "nodes": [
+    { "id": "person-sarah-chen", "type": "person", "label": "Sarah Chen", "data": { "role": "Account Executive", "company": "AcmeCorp", "email": "sarah.chen@acmecorp.com" } },
+    { "id": "person-marcus-johnson", "type": "person", "label": "Marcus Johnson", "data": { "role": "CTO", "company": "TechVentures", "email": "marcus.johnson@techventures.io", "decisionMaker": true } },
+    { "id": "person-priya-patel", "type": "person", "label": "Priya Patel", "data": { "role": "VP Engineering", "company": "TechVentures", "email": "priya.patel@techventures.io", "decisionMaker": true } },
+    { "id": "person-john-smith", "type": "person", "label": "John Smith", "data": { "role": "Sales Manager", "company": "AcmeCorp", "email": "john.smith@acmecorp.com" } },
+    { "id": "person-emily-russo", "type": "person", "label": "Emily Russo", "data": { "role": "General Counsel", "company": "TechVentures", "email": "emily.russo@techventures.io", "decisionMaker": false } },
+    { "id": "company-acmecorp", "type": "company", "label": "AcmeCorp", "data": { "industry": "Monitoring SaaS", "size": "250-500" } },
+    { "id": "company-techventures", "type": "company", "label": "TechVentures", "data": { "industry": "FinTech SaaS", "size": "320 employees", "currentMonitoringSpend": 50000 } },
+    { "id": "company-datacorp", "type": "company", "label": "DataCorp", "data": { "industry": "Data Analytics", "size": "150 employees", "notes": "Existing AcmeCorp customer in Frankfurt" } },
+    { "id": "topic-pricing", "type": "topic", "label": "Pricing", "data": { "recurring": true, "meetingCount": 3 } },
+    { "id": "topic-monitoring", "type": "topic", "label": "Monitoring Infrastructure", "data": { "recurring": true, "meetingCount": 3 } },
+    { "id": "topic-integration", "type": "topic", "label": "Kubernetes Integration", "data": { "recurring": false, "meetingCount": 1 } },
+    { "id": "topic-compliance", "type": "topic", "label": "EU Compliance / SOC 2", "data": { "recurring": true, "meetingCount": 2, "blocker": true } }
+  ],
+  "edges": [
+    { "id": "edge-001", "source": "person-sarah-chen", "target": "company-acmecorp", "type": "works-at", "data": {} },
+    { "id": "edge-002", "source": "person-john-smith", "target": "company-acmecorp", "type": "works-at", "data": {} },
+    { "id": "edge-003", "source": "person-marcus-johnson", "target": "company-techventures", "type": "works-at", "data": {} },
+    { "id": "edge-004", "source": "person-priya-patel", "target": "company-techventures", "type": "works-at", "data": {} },
+    { "id": "edge-005", "source": "person-emily-russo", "target": "company-techventures", "type": "works-at", "data": {} },
+    { "id": "edge-006", "source": "person-sarah-chen", "target": "person-marcus-johnson", "type": "prospect-contact", "data": { "touchpoints": 3 } },
+    { "id": "edge-007", "source": "company-techventures", "target": "topic-pricing", "type": "concerned-about", "data": { "priority": "high" } },
+    { "id": "edge-008", "source": "company-techventures", "target": "topic-compliance", "type": "requires", "data": { "blocker": true } },
+    { "id": "edge-009", "source": "company-techventures", "target": "topic-monitoring", "type": "pain-point", "data": { "severity": "high" } },
+    { "id": "edge-010", "source": "person-priya-patel", "target": "topic-integration", "type": "champions", "data": {} },
+    { "id": "edge-011", "source": "company-datacorp", "target": "company-acmecorp", "type": "customer-of", "data": { "since": "2022-06-01" } }
+  ],
+  "stats": {
+    "totalNodes": 12,
+    "totalEdges": 11,
+    "totalMeetings": 3,
+    "lastUpdated": "2024-01-15T11:05:00.000Z"
+  }
+}

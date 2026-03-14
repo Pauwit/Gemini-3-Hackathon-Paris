@@ -1,0 +1,6 @@
+node_modules/
+.next/
+.env
+server/memory/memory-store.json
+*.log
+.DS_Store

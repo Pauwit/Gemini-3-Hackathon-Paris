@@ -1,0 +1,34 @@
+[
+  {
+    "meetingId": "meeting-001",
+    "documentId": "doc-001",
+    "type": "summary",
+    "title": "Meeting Summary: AcmeCorp Q1 Sales Review with TechVentures",
+    "content": "# Meeting Summary\n**Date:** January 15, 2024 | **Duration:** 60 minutes\n**Participants:** Sarah Chen (AcmeCorp AE), Marcus Johnson (TechVentures CTO), Priya Patel (TechVentures VP Engineering)\n\n## Key Discussion Points\n\n1. **Cost Pain** — TechVentures is spending $50k/month on Datadog, projected to reach $70k/month by Q3 as they expand to EU. The CFO is scrutinizing the monitoring budget.\n\n2. **Technical Pain** — 400+ microservices on Kubernetes generate severe alert fatigue. Priya highlighted poor correlation across services as the #1 engineering pain point.\n\n3. **Pricing Presented** — AcmeCorp's equivalent plan at $28k/month, saving 44% ($264k/year). Flat-rate ingestion with unlimited custom metrics highlighted as key differentiator.\n\n4. **Compliance Requirements** — SOC 2 Type II report and a GDPR-compliant DPA with EU data residency guarantees required before any contract can proceed.\n\n5. **Migration Risk** — Both Marcus and Priya flagged migration risk as a top concern following a painful past vendor change. Phased migration approach discussed.\n\n## Sentiment Assessment\nMarcus: engaged on cost savings, cautious on migration. Priya: technically skeptical, warmed up during Kubernetes discussion. Overall: **positive with conditions**.\n\n## Next Steps\n- [ ] Sarah to send SOC 2 report and DPA template by EOW\n- [ ] Schedule Kubernetes integration deep-dive with Priya — target Jan 29\n- [ ] Prepare phased migration proposal with dedicated engineer commitment",
+    "generatedAt": "2024-01-15T11:01:00.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "documentId": "doc-002",
+    "type": "follow-up-email",
+    "title": "Follow-Up: AcmeCorp Monitoring Solution — Next Steps",
+    "content": "**Subject:** Follow-Up: AcmeCorp Monitoring Solution — Next Steps\n\nDear Marcus and Priya,\n\nThank you for a productive session this morning. It was great to understand TechVentures' monitoring landscape in more depth and to meet Priya for the first time.\n\nAs promised, here is a summary of what we discussed and our agreed next steps:\n\n**What We Covered**\n- Your current Datadog spend ($50k/month, projected $70k by Q3) and our 44% cost reduction offer at $28k/month\n- Our flat-rate ingestion model with unlimited Prometheus custom metrics — directly addressing your per-metric cost concern\n- EU data residency options: dedicated Frankfurt and Dublin infrastructure with contractual guarantees\n- Phased migration approach: non-prod → secondary prod → critical path over approximately 10 weeks with a dedicated migration engineer\n\n**Action Items**\n1. **Compliance Pack** — I will send our SOC 2 Type II report and GDPR DPA template to your legal team by end of this week.\n2. **Technical Deep-Dive** — I'd like to propose January 29th for a 90-minute Kubernetes integration session with Priya and your platform team. Does that work?\n3. **Migration Proposal** — I'll prepare a detailed phased migration plan with engineer assignments and timeline.\n\nPlease let me know if I've missed anything or if there are questions in the meantime.\n\nBest regards,\nSarah Chen\nAccount Executive, AcmeCorp\nsarah.chen@acmecorp.com | +1 (415) 555-0142",
+    "generatedAt": "2024-01-15T11:01:30.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "documentId": "doc-003",
+    "type": "strategy-brief",
+    "title": "Strategy Brief: TechVentures Deal — Q1 2024",
+    "content": "# Strategy Brief: TechVentures\n**Internal — Do Not Share** | Updated: January 15, 2024\n\n## Deal Health: 7.5/10\nStrong cost motivation + technical pain. Two conditions must be met: compliance documentation and migration risk mitigation.\n\n## Competitive Positioning\n- **Datadog counter-offer risk:** Datadog will likely offer 20% retention discount (~$40k/mo). **Response:** Our $28k/mo is still 30% cheaper; show 3-year TCO including Datadog's projected cost growth curve.\n- **New Relic risk:** Low. Priya specifically mentioned Datadog — no indication they're evaluating New Relic.\n- **Key differentiator to emphasize:** Unlimited custom metrics (Priya's explicit pain point) + Kubernetes-native correlation engine.\n\n## Top 3 Objection Responses\n1. **Migration risk** → Lead with white-glove program: dedicated engineer, dashboard import tool, 10-week phased plan with 90-day parallel run option.\n2. **EU compliance** → Send SOC 2 + DPA immediately. Offer reference call with existing EU customer (suggest DataCorp in Frankfurt).\n3. **Will it actually save us money?** → Build live TCO model in next meeting: current $50k + projected growth vs. our flat $28k. Show 3-year delta.\n\n## Recommended Next Meeting Agenda (Jan 29)\n1. Kubernetes integration live demo (30 min)\n2. Prometheus migration tooling walkthrough (20 min)\n3. Phased migration plan review (20 min)\n4. Pricing/contract path alignment (10 min)",
+    "generatedAt": "2024-01-15T11:02:00.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "documentId": "doc-004",
+    "type": "decision-log",
+    "title": "Decision Log: AcmeCorp Q1 Sales Review with TechVentures",
+    "content": "# Decision Log\n**Meeting:** AcmeCorp Q1 Sales Review with TechVentures | January 15, 2024\n\n| # | Decision / Commitment | Owner | Status | Due |\n|---|----------------------|-------|--------|-----|\n| 1 | SOC 2 Type II report and GDPR DPA to be sent to TechVentures legal | Sarah Chen | **Pending** | Jan 19, 2024 |\n| 2 | Technical deep-dive on Kubernetes integration to be scheduled | Sarah Chen | **Pending** | Target Jan 29, 2024 |\n| 3 | Phased migration proposal to be prepared with engineer assignments | Sarah Chen | **Pending** | Jan 22, 2024 |\n| 4 | TechVentures to evaluate phased migration starting with non-production | Priya Patel | **Under Consideration** | — |\n| 5 | 3-year TCO comparison to be prepared (AcmeCorp vs Datadog projected growth) | Sarah Chen | **Pending** | Jan 22, 2024 |\n\n## Open Questions\n- **Q:** Does TechVentures have a formal procurement process / RFP requirement?\n- **Q:** Who is the legal contact at TechVentures for DPA review?\n- **Q:** What is TechVentures' target go-live date for the new monitoring platform?\n\n## Items Not Decided\n- Contract length preference (1-year vs 3-year) — to be addressed after compliance review\n- Whether to include PagerDuty integration in scope",
+    "generatedAt": "2024-01-15T11:02:30.000Z"
+  }
+]

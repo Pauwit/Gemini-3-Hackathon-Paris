@@ -1,0 +1,98 @@
+[
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-001",
+    "speaker": "Sarah Chen",
+    "text": "Good morning Marcus, Priya. Thanks for making time today. I'm excited to walk you through how AcmeCorp's monitoring platform can address some of the challenges you mentioned in your intake form.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:00:15.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-002",
+    "speaker": "Marcus Johnson",
+    "text": "Morning Sarah. Yeah, we've been struggling with our current setup for a while. Datadog has served us okay but honestly the costs are getting out of hand as we scale.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:00:45.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-003",
+    "speaker": "Priya Patel",
+    "text": "From an engineering perspective, the main pain points are the alert fatigue and the difficulty correlating metrics across our microservices. We have over 400 services now and Datadog's default dashboards just don't cut it.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:01:30.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-004",
+    "speaker": "Sarah Chen",
+    "text": "That's a really common challenge at your scale. Can you tell me more about your current spend with Datadog? I want to make sure I'm showing you a fair comparison.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:02:10.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-005",
+    "speaker": "Marcus Johnson",
+    "text": "We're at about $50,000 a month right now, and that's projected to hit $70k by Q3 as we expand into the EU region. The CFO is already asking hard questions about the monitoring budget.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:02:55.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-006",
+    "speaker": "Sarah Chen",
+    "text": "I completely understand. For an equivalent infrastructure footprint, our platform comes in at around $28,000 per month — that's a 44% reduction. And our pricing model doesn't spike with host count the way Datadog's does.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:04:20.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-007",
+    "speaker": "Priya Patel",
+    "text": "How does that work technically? Are you using a different metric ingestion model? Because with Datadog we pay per custom metric and that adds up fast with Prometheus exporters.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:05:10.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-008",
+    "speaker": "Sarah Chen",
+    "text": "Great question. We use a flat-rate ingestion model — unlimited custom metrics are included in the base plan. You only pay for data retention beyond 13 months and for APM traces above your committed volume.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:06:00.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-009",
+    "speaker": "Marcus Johnson",
+    "text": "What about compliance? We're going through SOC 2 Type II certification right now and our auditors are very particular about data residency. We need everything in the EU if it's touching EU customer data.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:15:30.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-010",
+    "speaker": "Sarah Chen",
+    "text": "Absolutely — we have dedicated EU data centers in Frankfurt and Dublin, and our data residency guarantees are contractually enforceable. I can share our SOC 2 Type II report and our DPA template with you today.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:16:15.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-011",
+    "speaker": "Priya Patel",
+    "text": "That's good to hear. One more thing — what's the migration path like from Datadog? We have probably two years of dashboards and alerts configured. I'm worried about the engineering time required.",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:25:00.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "segmentId": "seg-012",
+    "speaker": "Marcus Johnson",
+    "text": "Yeah, migration risk is a big concern for us. Last time we changed vendors it took the team three months and created incidents. Can we talk about what a phased approach would look like and whether you offer migration support?",
+    "isFinal": true,
+    "timestamp": "2024-01-15T10:26:00.000Z"
+  }
+]

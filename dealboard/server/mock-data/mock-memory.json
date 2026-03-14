@@ -1,0 +1,137 @@
+{
+  "interactions": [
+    {
+      "id": "interaction-001",
+      "meetingId": "meeting-oct-2023",
+      "date": "2023-10-15",
+      "title": "Initial Discovery Call — TechVentures",
+      "summary": "First contact with Marcus Johnson (CTO) at TechVentures. Key pain points: Datadog cost ($50k/mo growing to $70k), alert fatigue, microservices correlation. High purchase intent. Decision expected Q1 2024.",
+      "participants": ["Sarah Chen", "Marcus Johnson"],
+      "outcome": "Progressed to evaluation stage. Follow-up technical demo scheduled."
+    },
+    {
+      "id": "interaction-002",
+      "meetingId": "meeting-nov-2023",
+      "date": "2023-11-20",
+      "title": "Pricing Proposal Delivery — TechVentures",
+      "summary": "Sent formal pricing proposal: $28k/month for equivalent Datadog coverage. Marcus responded positively but flagged EU data residency and SOC 2 requirements as blockers to sign. Priya Patel (VP Eng) introduced as technical decision-maker.",
+      "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"],
+      "outcome": "Proposal under internal review. Compliance requirements to be addressed."
+    },
+    {
+      "id": "interaction-003",
+      "meetingId": "meeting-dec-2023",
+      "date": "2023-12-10",
+      "title": "Internal AcmeCorp Account Strategy Review",
+      "summary": "Internal discussion about TechVentures deal. Identified Marcus as financial champion, Priya as technical champion. Legal (Emily Russo) needs to review DPA before sign-off. Competitive risk: Datadog offering 20% discount to retain.",
+      "participants": ["Sarah Chen", "John Smith"],
+      "outcome": "Agreed on EU data residency talking points and migration support package for Q1 meeting."
+    }
+  ],
+  "people": {
+    "Marcus Johnson": {
+      "id": "person-marcus-johnson",
+      "role": "CTO",
+      "company": "TechVentures",
+      "email": "marcus.johnson@techventures.io",
+      "decisionMaker": true,
+      "preferences": ["ROI-focused", "Risk-averse on migrations", "Responds well to concrete numbers"],
+      "concerns": ["Migration risk", "EU compliance", "Total cost of ownership"],
+      "lastSeen": "2024-01-15",
+      "relationship": "Warm — 3 touchpoints"
+    },
+    "Priya Patel": {
+      "id": "person-priya-patel",
+      "role": "VP Engineering",
+      "company": "TechVentures",
+      "email": "priya.patel@techventures.io",
+      "decisionMaker": true,
+      "preferences": ["Technical depth", "Kubernetes-native features", "Migration tooling"],
+      "concerns": ["Dashboard migration effort", "Alert reconfiguration", "Team learning curve"],
+      "lastSeen": "2024-01-15",
+      "relationship": "Developing — 2 touchpoints"
+    },
+    "Sarah Chen": {
+      "id": "person-sarah-chen",
+      "role": "Account Executive",
+      "company": "AcmeCorp",
+      "email": "sarah.chen@acmecorp.com",
+      "decisionMaker": false,
+      "preferences": [],
+      "concerns": [],
+      "lastSeen": "2024-01-15",
+      "relationship": "Internal"
+    },
+    "John Smith": {
+      "id": "person-john-smith",
+      "role": "Sales Manager",
+      "company": "AcmeCorp",
+      "email": "john.smith@acmecorp.com",
+      "decisionMaker": false,
+      "preferences": [],
+      "concerns": [],
+      "lastSeen": "2023-12-10",
+      "relationship": "Internal"
+    }
+  },
+  "decisions": [
+    {
+      "id": "decision-001",
+      "date": "2023-10-15",
+      "meetingId": "meeting-oct-2023",
+      "description": "Agreed to proceed to formal evaluation with pricing proposal",
+      "madeBy": "Marcus Johnson",
+      "status": "completed"
+    },
+    {
+      "id": "decision-002",
+      "date": "2023-11-20",
+      "meetingId": "meeting-nov-2023",
+      "description": "EU data residency and SOC 2 report required before contract sign-off",
+      "madeBy": "Marcus Johnson",
+      "status": "pending"
+    },
+    {
+      "id": "decision-003",
+      "date": "2023-12-10",
+      "meetingId": "meeting-dec-2023",
+      "description": "AcmeCorp to include white-glove migration support in proposal (no extra charge)",
+      "madeBy": "John Smith",
+      "status": "completed"
+    },
+    {
+      "id": "decision-004",
+      "date": "2024-01-15",
+      "meetingId": "meeting-001",
+      "description": "TechVentures to evaluate phased migration approach starting with non-production environments",
+      "madeBy": "Priya Patel",
+      "status": "pending"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "pattern-001",
+      "type": "objection-pattern",
+      "description": "TechVentures consistently raises migration risk as primary objection after pricing is accepted",
+      "evidence": ["interaction-001", "interaction-002", "interaction-003"],
+      "confidence": 0.85,
+      "recommendation": "Lead with migration support story early — before migration becomes the blocker"
+    },
+    {
+      "id": "pattern-002",
+      "type": "stakeholder-pattern",
+      "description": "Marcus Johnson approves on ROI; Priya Patel must be technically satisfied before Marcus commits",
+      "evidence": ["interaction-002", "interaction-003"],
+      "confidence": 0.90,
+      "recommendation": "Always include Priya in technical discussions; do not proceed to contract without her sign-off"
+    },
+    {
+      "id": "pattern-003",
+      "type": "competitive-pattern",
+      "description": "Datadog is likely to counter with retention discounts when deals reach evaluation stage",
+      "evidence": ["interaction-003"],
+      "confidence": 0.72,
+      "recommendation": "Pre-empt with 3-year TCO comparison including Datadog's projected cost growth"
+    }
+  ]
+}

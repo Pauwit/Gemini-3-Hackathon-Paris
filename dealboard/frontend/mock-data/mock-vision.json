@@ -1,0 +1,26 @@
+[
+  {
+    "meetingId": "meeting-001",
+    "visionId": "vis-001",
+    "emotion": "neutral",
+    "confidence": 0.82,
+    "notes": "Marcus listening attentively during introduction. Relaxed posture, no strong signals yet.",
+    "timestamp": "2024-01-15T10:00:30.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "visionId": "vis-002",
+    "emotion": "skeptical",
+    "confidence": 0.78,
+    "notes": "Marcus raised eyebrows when $28k/month pricing was mentioned. Slight head tilt — may need ROI validation before accepting the number.",
+    "timestamp": "2024-01-15T10:04:35.000Z"
+  },
+  {
+    "meetingId": "meeting-001",
+    "visionId": "vis-003",
+    "emotion": "engaged",
+    "confidence": 0.91,
+    "notes": "Both Marcus and Priya leaning forward during the unlimited custom metrics explanation. Priya nodded twice — this addressed her core pain point.",
+    "timestamp": "2024-01-15T10:06:15.000Z"
+  }
+]

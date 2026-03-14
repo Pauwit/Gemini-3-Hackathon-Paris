@@ -1,0 +1,111 @@
+{
+  "_comment": "Mock GWS API responses for local development. Used when USE_MOCK=true.",
+  "battlecards": {
+    "datadog": {
+      "pricing": {
+        "infrastructure": "$23/host/month (standard)",
+        "apm": "$40/host/month",
+        "logs": "$0.10/GB ingested",
+        "customMetrics": "$0.05 per 100 metrics/month",
+        "estimatedMonthly50hosts": "$3,150 base + overages"
+      },
+      "weaknesses": [
+        "Costs scale aggressively with host count and custom metrics",
+        "Complex pricing model with many add-on charges",
+        "No contractual data residency guarantees in EU tier",
+        "Alert fatigue is a known community complaint",
+        "Migration from Datadog is self-service with limited vendor support"
+      ],
+      "strengths": [
+        "Market leader with large ecosystem",
+        "Strong APM and distributed tracing",
+        "Wide integration library (600+ integrations)",
+        "Mature alerting and anomaly detection"
+      ]
+    },
+    "newRelic": {
+      "pricing": {
+        "model": "Per-user + data ingest ($0.35/GB after 100GB free)",
+        "freeUsers": "Unlimited basic users",
+        "fullUsers": "$549/user/month",
+        "estimatedMonthly": "Varies widely by data volume"
+      },
+      "weaknesses": [
+        "Full-platform access requires expensive full user licenses",
+        "Data ingest costs unpredictable for high-volume environments",
+        "UI complexity rated poorly in recent G2 reviews",
+        "Limited Kubernetes-native experience vs competitors"
+      ],
+      "strengths": [
+        "Competitive base pricing for small teams",
+        "Strong browser and mobile monitoring",
+        "Good compliance certifications (FedRAMP, SOC2)",
+        "Generous free tier for evaluation"
+      ]
+    }
+  },
+  "discount_rules": [
+    { "condition": "Annual commitment", "discount": "15%", "approvalRequired": false },
+    { "condition": "2-year commitment", "discount": "22%", "approvalRequired": false },
+    { "condition": "3-year commitment", "discount": "30%", "approvalRequired": true, "approver": "VP Sales" },
+    { "condition": "Competitive displacement (Datadog)", "discount": "10% additional", "approvalRequired": true, "approver": "Sales Manager" },
+    { "condition": "Enterprise > 500 hosts", "discount": "Custom pricing", "approvalRequired": true, "approver": "Enterprise Team" }
+  ],
+  "client_history": {
+    "TechVentures": {
+      "firstContact": "2023-10-05",
+      "stage": "Evaluation",
+      "contacts": ["Marcus Johnson (CTO)", "Priya Patel (VP Engineering)"],
+      "previousMeetings": 1,
+      "notes": "Inbound lead from website. High intent. Evaluating vs Datadog renewal.",
+      "proposalSent": "2023-11-20",
+      "proposalAmount": "$28,000/month",
+      "nextAction": "Technical deep-dive Q1 2024"
+    }
+  },
+  "prospect_info": {
+    "TechVentures": {
+      "company": "TechVentures Inc.",
+      "industry": "FinTech SaaS",
+      "employees": 320,
+      "techStack": ["Kubernetes", "AWS", "Prometheus", "Go", "Python", "PostgreSQL"],
+      "infrastructure": "~200 hosts, 400+ microservices",
+      "currentVendors": ["Datadog", "PagerDuty", "Terraform Cloud"],
+      "headquarters": "San Francisco, CA",
+      "euPresence": true,
+      "euRegions": ["Frankfurt"],
+      "compliance": ["SOC 2 Type II (in progress)", "PCI-DSS (future)", "GDPR"]
+    }
+  },
+  "calendar_events": [
+    {
+      "id": "cal-001",
+      "title": "TechVentures — Initial Discovery Call",
+      "start": "2023-10-15T14:00:00Z",
+      "end": "2023-10-15T15:00:00Z",
+      "attendees": ["sarah.chen@acmecorp.com", "marcus.johnson@techventures.io"],
+      "description": "First call — discussed pain points with Datadog pricing and alert fatigue."
+    },
+    {
+      "id": "cal-002",
+      "title": "TechVentures — Technical Demo",
+      "start": "2024-01-15T10:00:00Z",
+      "end": "2024-01-15T11:00:00Z",
+      "attendees": ["sarah.chen@acmecorp.com", "marcus.johnson@techventures.io", "priya.patel@techventures.io"],
+      "description": "Q1 sales review and technical deep-dive."
+    }
+  ],
+  "meetings": [
+    {
+      "id": "meeting-001",
+      "title": "AcmeCorp Q1 Sales Review with TechVentures",
+      "date": "2024-01-15T10:00:00Z",
+      "duration": 60,
+      "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"],
+      "cardCount": 5,
+      "documentCount": 4
+    }
+  ],
+  "cards": [],
+  "documents": []
+}

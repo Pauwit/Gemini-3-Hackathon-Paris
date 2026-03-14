@@ -1,0 +1,19 @@
+{
+  "_comment": "Reference examples of every WebSocket message type. Matches PROTOCOL.md exactly.",
+  "client_to_server": {
+    "audio-chunk": { "type": "audio-chunk", "payload": { "data": "base64encodedaudio...", "sampleRate": 16000, "channels": 1, "chunkIndex": 42 }, "timestamp": "2024-01-15T10:30:00.250Z" },
+    "text-input": { "type": "text-input", "payload": { "text": "What are our pricing advantages over Datadog?", "meetingId": "meeting-001" }, "timestamp": "2024-01-15T10:30:15.000Z" },
+    "meeting-start": { "type": "meeting-start", "payload": { "meetingId": "meeting-001", "title": "AcmeCorp Q1 Sales Review with TechVentures", "participants": ["Sarah Chen", "Marcus Johnson", "Priya Patel"], "context": "Initial sales call for enterprise monitoring solution" }, "timestamp": "2024-01-15T10:00:00.000Z" },
+    "meeting-stop": { "type": "meeting-stop", "payload": { "meetingId": "meeting-001", "reason": "user" }, "timestamp": "2024-01-15T11:00:00.000Z" },
+    "generate-documents": { "type": "generate-documents", "payload": { "meetingId": "meeting-001", "types": ["summary", "follow-up-email", "strategy-brief", "decision-log"] }, "timestamp": "2024-01-15T11:00:30.000Z" }
+  },
+  "server_to_client": {
+    "meeting-state": { "type": "meeting-state", "payload": { "meetingId": "meeting-001", "state": "active", "startedAt": "2024-01-15T10:00:05.000Z", "stoppedAt": null }, "timestamp": "2024-01-15T10:00:05.000Z" },
+    "transcript": { "type": "transcript", "payload": { "meetingId": "meeting-001", "segmentId": "seg-042", "speaker": "Marcus Johnson", "text": "We're currently spending about $50k monthly on Datadog and the costs keep climbing as we scale.", "isFinal": true, "timestamp": "2024-01-15T10:30:15.000Z" }, "timestamp": "2024-01-15T10:30:15.000Z" },
+    "card": { "type": "card", "payload": { "meetingId": "meeting-001", "cardId": "card-007", "label": "BATTLECARD", "title": "Datadog Cost Comparison", "summary": "TechVentures pays $50k/mo for Datadog. Our equivalent plan is $28k/mo — 44% savings.", "details": [{ "question": "What is TechVentures current Datadog spend?", "answer": "$50,000/month, scaling with infrastructure growth", "source": "Live transcript" }, { "question": "What is our comparable pricing?", "answer": "$28,000/month for equivalent coverage — 44% cost reduction", "source": "Gmail: pricing_proposal_techventures.pdf" }], "confidence": 0.92, "triggeredBy": "seg-042", "timestamp": "2024-01-15T10:30:18.000Z" }, "timestamp": "2024-01-15T10:30:18.000Z" },
+    "vision": { "type": "vision", "payload": { "meetingId": "meeting-001", "visionId": "vis-015", "emotion": "skeptical", "confidence": 0.78, "notes": "Marcus raised eyebrows when pricing was mentioned — may need ROI data", "timestamp": "2024-01-15T10:30:20.000Z" }, "timestamp": "2024-01-15T10:30:20.000Z" },
+    "document": { "type": "document", "payload": { "meetingId": "meeting-001", "documentId": "doc-001", "type": "follow-up-email", "title": "Follow-Up: AcmeCorp Monitoring Solution Proposal", "content": "Dear Marcus,\n\nThank you for your time today discussing TechVentures' monitoring needs...", "generatedAt": "2024-01-15T11:01:00.000Z" }, "timestamp": "2024-01-15T11:01:00.000Z" },
+    "pipeline-status": { "type": "pipeline-status", "payload": { "meetingId": "meeting-001", "stage": "fetching", "workersActive": ["gmail-worker", "drive-worker"], "message": "Fetching pricing data and email history..." }, "timestamp": "2024-01-15T10:30:16.000Z" },
+    "error": { "type": "error", "payload": { "code": "GWS_TIMEOUT", "message": "Google Workspace CLI timed out after 10s. Retrying with cached data.", "recoverable": true }, "timestamp": "2024-01-15T10:30:17.000Z" }
+  }
+}
