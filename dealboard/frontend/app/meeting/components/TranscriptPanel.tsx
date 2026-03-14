@@ -27,8 +27,8 @@
 
 'use client';
 
-import React, { useEffect, useRef, useMemo } from 'react';
-import { Mic } from 'lucide-react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { Mic, Send } from 'lucide-react';
 import { useWebSocketContext } from '../../../components/providers/WebSocketProvider';
 
 // ── Speaker colors ────────────────────────────────────────
@@ -74,10 +74,11 @@ function shortTime(iso: string): string {
  * Auto-scrolls to newest final segment.
  */
 export function TranscriptPanel() {
-  const { transcriptSegments, meetingState } = useWebSocketContext();
+  const { transcriptSegments, meetingState, sendTextInput } = useWebSocketContext();
   const bottomRef     = useRef<HTMLDivElement>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
   const isNearBottom  = useRef(true);
+  const [draft, setDraft] = useState('');
 
   // Track first speaker to determine "us" vs "prospect"
   const firstSpeaker = useMemo(() => {
@@ -116,6 +117,22 @@ export function TranscriptPanel() {
   }
 
   const isActive = meetingState?.state === 'active' || meetingState?.state === 'starting';
+  const currentMeetingId = meetingState?.meetingId || null;
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isActive || !currentMeetingId) {
+      return;
+    }
+
+    const text = draft.trim();
+    if (!text) {
+      return;
+    }
+
+    sendTextInput(text, currentMeetingId, 'You', 'manual');
+    setDraft('');
+  }
 
   // Sort by timestamp
   const sorted = useMemo(() =>
@@ -244,6 +261,42 @@ export function TranscriptPanel() {
         {/* Scroll anchor */}
         <div ref={bottomRef} />
       </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="pt-3 mt-2"
+        style={{ borderTop: '1px solid #E8EAED' }}
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={isActive ? 'Add a live note for AI…' : 'Start meeting to send notes'}
+            disabled={!isActive || !currentMeetingId}
+            className="flex-1 rounded-lg px-3 py-2 text-xs outline-none"
+            style={{
+              border: '1px solid #DADCE0',
+              backgroundColor: isActive ? '#FFFFFF' : '#F8F9FA',
+              color: '#202124',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!isActive || !currentMeetingId || !draft.trim()}
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{
+              backgroundColor: '#4285F4',
+              color: '#FFFFFF',
+              opacity: !isActive || !currentMeetingId || !draft.trim() ? 0.5 : 1,
+            }}
+            aria-label="Send note"
+            title="Send note"
+          >
+            <Send size={13} />
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

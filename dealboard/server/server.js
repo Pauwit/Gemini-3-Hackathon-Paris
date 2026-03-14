@@ -29,6 +29,7 @@ const cors = require('cors');
 const http = require('http');
 const path = require('path');
 const config = require('./config');
+const { analyzeLiveSegment } = require('./services/live-companion');
 
 // ── Routes ──────────────────────────────────────────────────
 const healthRouter = require('./routes/api-health');
@@ -65,6 +66,8 @@ const meetingState = {
   participants: [],
   title: '',
   context: '',
+  transcript: [],
+  cards: [],
 };
 
 // ── WebSocket Connection Handler ─────────────────────────────
@@ -146,6 +149,8 @@ function handleMeetingStart(ws, payload) {
   meetingState.title = title;
   meetingState.participants = participants || [];
   meetingState.context = context || '';
+  meetingState.transcript = [];
+  meetingState.cards = [];
 
   log('info', `Meeting starting: ${title}`, { meetingId });
 
@@ -198,26 +203,109 @@ function handleMeetingStop(ws, payload) {
 
 function handleAudioChunk(ws, payload) {
   const { chunkIndex, sampleRate, channels } = payload;
-  // TODO: Route to listener-agent for transcription via Gemini Live
-  // For now, acknowledge receipt silently
+
+  // Audio chunks are still accepted while transcript text is ingested
+  // through text-input events for low-latency live coaching.
   if (chunkIndex % 100 === 0) {
     log('info', `Audio chunk ${chunkIndex}`, { sampleRate, channels });
   }
 }
 
-function handleTextInput(ws, payload) {
-  const { text, meetingId } = payload;
-  log('info', `Text input received`, { meetingId, text: text.substring(0, 80) });
+async function handleTextInput(ws, payload) {
+  const { text, meetingId, speaker, source } = payload;
+  const safeText = String(text || '').trim();
+
+  if (!safeText) {
+    return;
+  }
+
+  const effectiveMeetingId = meetingId || meetingState.meetingId;
+  const effectiveSpeaker = speaker || 'Live Speaker';
+
+  log('info', 'Text input received', {
+    meetingId: effectiveMeetingId,
+    source: source || 'unknown',
+    text: safeText.substring(0, 80),
+  });
+
+  const transcriptSegment = {
+    meetingId: effectiveMeetingId,
+    segmentId: `seg-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    speaker: effectiveSpeaker,
+    text: safeText,
+    isFinal: true,
+    timestamp: new Date().toISOString(),
+  };
+
+  meetingState.transcript.push(transcriptSegment);
+  broadcastToClient(ws, 'transcript', transcriptSegment);
 
   // Emit pipeline status
   broadcastToClient(ws, 'pipeline-status', {
-    meetingId,
-    stage: 'analysing',
-    workersActive: [],
-    message: `Processing: "${text.substring(0, 60)}..."`,
+    meetingId: effectiveMeetingId,
+    stage: 'listening',
+    workersActive: ['companion-agent'],
+    message: 'Listening and understanding the latest segment…',
   });
 
-  // TODO: Route to listener-agent → analyser-agent pipeline
+  try {
+    broadcastToClient(ws, 'pipeline-status', {
+      meetingId: effectiveMeetingId,
+      stage: 'analysing',
+      workersActive: ['companion-agent', 'fact-verifier'],
+      message: `Analyzing: "${safeText.substring(0, 60)}${safeText.length > 60 ? '…' : ''}"`,
+    });
+
+    const analysis = await analyzeLiveSegment(safeText, {
+      meetingId: effectiveMeetingId,
+      title: meetingState.title,
+      participants: meetingState.participants,
+      context: meetingState.context,
+      transcriptLength: meetingState.transcript.length,
+      lastSpeaker: effectiveSpeaker,
+    });
+
+    const cards = Array.isArray(analysis.cards) ? analysis.cards : [];
+
+    for (const card of cards) {
+      const normalizedCard = {
+        meetingId: effectiveMeetingId,
+        cardId: `card-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        label: card.label || 'INFO',
+        title: card.title,
+        summary: card.summary,
+        details: Array.isArray(card.details) ? card.details : [],
+        confidence: typeof card.confidence === 'number' ? Math.max(0, Math.min(1, card.confidence)) : 0.72,
+        triggeredBy: safeText,
+        timestamp: new Date().toISOString(),
+      };
+
+      meetingState.cards.push(normalizedCard);
+      broadcastToClient(ws, 'card', normalizedCard);
+    }
+
+    broadcastToClient(ws, 'pipeline-status', {
+      meetingId: effectiveMeetingId,
+      stage: 'done',
+      workersActive: [],
+      message: `Companion updated (${analysis.modelUsed}).`,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Live companion analysis failed';
+
+    broadcastToClient(ws, 'pipeline-status', {
+      meetingId: effectiveMeetingId,
+      stage: 'error',
+      workersActive: [],
+      message: 'AI companion failed to process this segment. Try again.',
+    });
+
+    broadcastToClient(ws, 'error', {
+      code: 'COMPANION_ANALYSIS_ERROR',
+      message,
+      recoverable: true,
+    });
+  }
 }
 
 function handleGenerateDocuments(ws, payload) {

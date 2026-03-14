@@ -24,17 +24,35 @@
 'use strict';
 
 const config = require('../config');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// TODO: Import SDK when implementing
-// const { GoogleGenerativeAI } = require('@google/generative-ai');
-// let _client = null;
-// function getClient() {
-//   if (!_client) {
-//     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
-//     _client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-//   }
-//   return _client;
-// }
+let _client = null;
+
+function getClient() {
+  if (!_client) {
+    if (!config.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not set');
+    }
+    _client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+  }
+  return _client;
+}
+
+function createGenerationConfig(options = {}) {
+  const generationConfig = {};
+
+  if (typeof options.temperature === 'number') {
+    generationConfig.temperature = options.temperature;
+  }
+  if (typeof options.maxOutputTokens === 'number') {
+    generationConfig.maxOutputTokens = options.maxOutputTokens;
+  }
+  if (typeof options.responseMimeType === 'string') {
+    generationConfig.responseMimeType = options.responseMimeType;
+  }
+
+  return generationConfig;
+}
 
 /**
  * generateContent
@@ -54,16 +72,20 @@ const config = require('../config');
  * );
  */
 async function generateContent(model, prompt, options = {}) {
-  // TODO: getClient().getGenerativeModel({ model })
-  // TODO: model.generateContent({ contents: [{ role: 'user', parts: [{ text: prompt }] }], ...options })
-  // TODO: Return response.response.text()
-  // TODO: Handle API errors (rate limits, invalid key, etc.)
+  const client = getClient();
+  const geminiModel = client.getGenerativeModel({ model });
 
-  console.log('[gemini-client] generateContent called — TODO: implement', {
-    model,
-    promptLength: prompt?.length,
-  });
-  return '{}';
+  try {
+    const result = await geminiModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: String(prompt || '') }] }],
+      generationConfig: createGenerationConfig(options),
+    });
+
+    return result?.response?.text?.() || '';
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown Gemini API error';
+    throw new Error(`[gemini-client] generateContent failed: ${message}`);
+  }
 }
 
 /**
@@ -81,12 +103,25 @@ async function generateContent(model, prompt, options = {}) {
  * }
  */
 async function* streamContent(model, prompt, options = {}) {
-  // TODO: getClient().getGenerativeModel({ model })
-  // TODO: model.generateContentStream(...)
-  // TODO: for await (const chunk of result.stream) { yield chunk.text() }
+  const client = getClient();
+  const geminiModel = client.getGenerativeModel({ model });
 
-  console.log('[gemini-client] streamContent called — TODO: implement', { model });
-  yield '<!-- streaming not yet implemented -->';
+  try {
+    const stream = await geminiModel.generateContentStream({
+      contents: [{ role: 'user', parts: [{ text: String(prompt || '') }] }],
+      generationConfig: createGenerationConfig(options),
+    });
+
+    for await (const chunk of stream.stream) {
+      const text = chunk?.text?.();
+      if (text) {
+        yield text;
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown Gemini API streaming error';
+    throw new Error(`[gemini-client] streamContent failed: ${message}`);
+  }
 }
 
 module.exports = { generateContent, streamContent };

@@ -50,6 +50,8 @@ export interface AudioChunkPayload {
 export interface TextInputPayload {
   text: string;
   meetingId: string;
+  speaker?: string;
+  source?: 'manual' | 'speech' | 'system';
 }
 
 export interface MeetingStartPayload {

@@ -38,6 +38,7 @@ import {
   FileText,
   Mic,
   Eye,
+  Video,
 } from 'lucide-react';
 import { useWebSocketContext } from '../../../components/providers/WebSocketProvider';
 import { useMeetingState }      from '../../../lib/hooks/useMeetingState';
@@ -82,6 +83,10 @@ const EMOTION_LABELS: Record<string, { emoji: string; label: string; color: stri
 interface TopBarProps {
   /** Meeting title override (from URL param or storage) */
   meetingTitle?: string;
+  /** Google Meet URL (if attached) */
+  meetUrl?: string | null;
+  /** Connect/Open Google Meet */
+  onConnectMeet?: () => void;
   /** Called when "Generate Docs" is clicked */
   onGenerateDocs?: () => void;
 }
@@ -93,7 +98,7 @@ interface TopBarProps {
  * @param meetingTitle  - display title override
  * @param onGenerateDocs - generate docs button callback
  */
-export function TopBar({ meetingTitle, onGenerateDocs }: TopBarProps) {
+export function TopBar({ meetingTitle, meetUrl, onConnectMeet, onGenerateDocs }: TopBarProps) {
   const { cards, pipelineStatus, visionData, meetingState } = useWebSocketContext();
   const { elapsedSeconds, isActive, isEnded, isStarting, stop, generateDocs } = useMeetingState();
 
@@ -247,6 +252,19 @@ export function TopBar({ meetingTitle, onGenerateDocs }: TopBarProps) {
           >
             <Mic size={13} />
           </div>
+        )}
+
+        {/* Google Meet connection */}
+        {(isActive || isStarting) && (
+          <Button
+            variant={meetUrl ? 'secondary' : 'primary'}
+            size="sm"
+            leftIcon={<Video size={13} />}
+            onClick={onConnectMeet}
+            title={meetUrl ? 'Open Google Meet' : 'Connect Google Meet'}
+          >
+            {meetUrl ? 'Open Meet' : 'Connect Meet'}
+          </Button>
         )}
 
         {/* Separator */}

@@ -39,7 +39,7 @@
 
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useSearchParams }    from 'next/navigation';
 import { TopBar }             from './components/TopBar';
 import { LiveCardBoard }      from './components/LiveCardBoard';
@@ -47,6 +47,7 @@ import { TranscriptPanel }    from './components/TranscriptPanel';
 import { TimelineView }       from './components/TimelineView';
 import { useMeetingState }    from '../../lib/hooks/useMeetingState';
 import { useAudioCapture }    from '../../lib/hooks/useAudioCapture';
+import { useSpeechRecognition } from '../../lib/hooks/useSpeechRecognition';
 import { useWebSocketContext } from '../../components/providers/WebSocketProvider';
 
 /**
@@ -59,11 +60,31 @@ export default function MeetingPage() {
   const searchParams = useSearchParams();
   const isMock       = searchParams?.get('mock') === 'true';
 
-  const { status, sendAudioChunk, meetingState } = useWebSocketContext();
+  const { status, sendAudioChunk, sendTextInput, meetingState } = useWebSocketContext();
   const { start, isActive, isIdle, isEnded }     = useMeetingState();
+  const [meetUrl, setMeetUrl] = useState<string | null>(null);
 
   // Meeting info from localStorage (set by dashboard modal)
-  const meetingInfoRef = useRef<{ id: string; title: string; participants: string[] } | null>(null);
+  const meetingInfoRef = useRef<{ id: string; title: string; participants: string[]; meetUrl?: string } | null>(null);
+
+  const normalizeMeetUrl = useCallback((value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+    try {
+      const parsed = new URL(withProtocol);
+      if (parsed.hostname !== 'meet.google.com') {
+        return null;
+      }
+      return parsed.toString();
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Audio capture hook
   const { startCapture, stopCapture, isCapturing } = useAudioCapture({
@@ -78,6 +99,25 @@ export default function MeetingPage() {
     },
   });
 
+  const {
+    isSupported: isSpeechSupported,
+    isListening: isSpeechListening,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition({
+    speaker: 'Meeting Speaker',
+    onFinalText: ({ text, speaker, source }) => {
+      const liveMeetingId = meetingState?.meetingId;
+      if (!liveMeetingId) {
+        return;
+      }
+      sendTextInput(text, liveMeetingId, speaker, source);
+    },
+    onError: (error) => {
+      console.warn('[MeetingPage] Speech recognition error:', error.message);
+    },
+  });
+
   // ── On mount: init meeting ────────────────────────────
   useEffect(() => {
     if (isMock) return; // Mock mode — no WS meeting needed
@@ -85,7 +125,16 @@ export default function MeetingPage() {
     try {
       const raw = localStorage.getItem('dealboard_current_meeting');
       if (raw) {
-        meetingInfoRef.current = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        const normalizedMeetUrl = normalizeMeetUrl(String(parsed?.meetUrl || ''));
+
+        meetingInfoRef.current = {
+          id: parsed?.id,
+          title: parsed?.title,
+          participants: Array.isArray(parsed?.participants) ? parsed.participants : [],
+          meetUrl: normalizedMeetUrl || undefined,
+        };
+        setMeetUrl(normalizedMeetUrl);
       }
     } catch { /* ignore */ }
 
@@ -95,7 +144,7 @@ export default function MeetingPage() {
       start(title, participants, '');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, isIdle, isMock]);
+  }, [status, isIdle, isMock, normalizeMeetUrl]);
 
   // ── Start/stop audio capture with meeting state ───────
   useEffect(() => {
@@ -109,15 +158,66 @@ export default function MeetingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, isMock]);
 
+  // ── Start/stop speech recognition with meeting state ───
+  useEffect(() => {
+    if (isMock || !isSpeechSupported) return;
+
+    if (isActive && !isSpeechListening) {
+      startListening();
+    } else if (!isActive && isSpeechListening) {
+      stopListening();
+    }
+  }, [
+    isActive,
+    isMock,
+    isSpeechListening,
+    isSpeechSupported,
+    startListening,
+    stopListening,
+  ]);
+
   // ── Stop audio on unmount ─────────────────────────────
   useEffect(() => {
     return () => {
       if (isCapturing) stopCapture();
+      if (isSpeechListening) stopListening();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isCapturing, isSpeechListening, stopCapture, stopListening]);
 
   const meetingTitle = meetingInfoRef.current?.title ?? meetingState?.meetingId ?? 'Live Meeting';
+
+  const handleConnectMeet = useCallback(() => {
+    if (meetUrl) {
+      window.open(meetUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const rawInput = window.prompt('Paste your Google Meet link (e.g. https://meet.google.com/abc-defg-hij)');
+    if (!rawInput) {
+      return;
+    }
+
+    const normalized = normalizeMeetUrl(rawInput);
+    if (!normalized) {
+      window.alert('Please enter a valid Google Meet URL (meet.google.com).');
+      return;
+    }
+
+    setMeetUrl(normalized);
+
+    try {
+      const raw = localStorage.getItem('dealboard_current_meeting');
+      const parsed = raw ? JSON.parse(raw) : {};
+      localStorage.setItem('dealboard_current_meeting', JSON.stringify({
+        ...parsed,
+        meetUrl: normalized,
+      }));
+    } catch {
+      // ignore persistence failure
+    }
+
+    window.open(normalized, '_blank', 'noopener,noreferrer');
+  }, [meetUrl, normalizeMeetUrl]);
 
   return (
     <div
@@ -125,7 +225,11 @@ export default function MeetingPage() {
       style={{ height: '100vh', backgroundColor: '#F8F9FA' }}
     >
       {/* ── Top Bar ──────────────────────────────────────── */}
-      <TopBar meetingTitle={meetingTitle} />
+      <TopBar
+        meetingTitle={meetingTitle}
+        meetUrl={meetUrl}
+        onConnectMeet={handleConnectMeet}
+      />
 
       {/* ── Content Area ─────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">

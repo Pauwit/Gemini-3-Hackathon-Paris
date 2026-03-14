@@ -61,7 +61,12 @@ interface WebSocketContextValue {
   stopMeeting: (meetingId: string) => void;
   generateDocuments: (meetingId: string, types: DocumentType[]) => void;
   sendAudioChunk: (data: string, sampleRate: number, channels: number, chunkIndex: number) => void;
-  sendTextInput: (text: string, meetingId: string) => void;
+  sendTextInput: (
+    text: string,
+    meetingId: string,
+    speaker?: string,
+    source?: 'manual' | 'speech' | 'system'
+  ) => void;
 }
 
 // ── Context ───────────────────────────────────────────────────
@@ -212,8 +217,13 @@ export function WebSocketProvider({ children, useMock = false }: WebSocketProvid
     []
   );
 
-  const sendTextInput = useCallback((text: string, meetingId: string) => {
-    clientRef.current?.send('text-input', { text, meetingId });
+  const sendTextInput = useCallback((
+    text: string,
+    meetingId: string,
+    speaker?: string,
+    source: 'manual' | 'speech' | 'system' = 'manual'
+  ) => {
+    clientRef.current?.send('text-input', { text, meetingId, speaker, source });
   }, []);
 
   // ── Context Value ─────────────────────────────────────────

@@ -146,7 +146,12 @@ interface MeetingControls {
   /** Send an audio chunk */
   sendAudioChunk:    (data: string, sampleRate: number, channels: number, chunkIndex: number) => void;
   /** Send text input (for testing without microphone) */
-  sendTextInput:     (text: string, meetingId: string) => void;
+  sendTextInput:     (
+    text: string,
+    meetingId: string,
+    speaker?: string,
+    source?: 'manual' | 'speech' | 'system'
+  ) => void;
 }
 
 /**
