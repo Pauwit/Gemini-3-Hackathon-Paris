@@ -20,48 +20,108 @@ function ago(iso: string) {
 
 type PanelId = 'advice' | 'projects' | 'calendar' | 'people' | 'meetings' | null;
 
+function CollapseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+    </svg>
+  );
+}
+function ExpandIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+    </svg>
+  );
+}
+function RefreshIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+    </svg>
+  );
+}
+function KeyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+    </svg>
+  );
+}
+
 function Panel({
-  emoji, title, color, headerBg, headerBorder, children, onToggleExpand, isExpanded
+  accentColor, title, headerIcon, children, onToggleExpand, isExpanded
 }: {
-  emoji: string; title: string; color: string;
-  headerBg: string; headerBorder: string; children: React.ReactNode;
+  accentColor: string;
+  title: string;
+  headerIcon: React.ReactNode;
+  children: React.ReactNode;
   onToggleExpand?: () => void;
   isExpanded?: boolean;
 }) {
   return (
-    <div 
-      className={`flex flex-col h-full bg-white rounded-2xl border border-border overflow-hidden shadow-soft transition-all duration-300 ${
-        isExpanded ? 'fixed inset-4 z-50 m-auto max-w-5xl shadow-pop' : 'min-h-0'
+    <div
+      className={`flex flex-col h-full overflow-hidden transition-all duration-300 ${
+        isExpanded ? 'fixed inset-4 z-50 m-auto max-w-5xl' : 'min-h-0'
       }`}
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 16,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: isExpanded
+          ? '0 0 0 1px rgba(255,255,255,0.06), 0 32px 80px rgba(0,0,0,0.7)'
+          : '0 0 0 1px rgba(255,255,255,0.04)',
+      }}
     >
+      {/* Accent top border */}
+      <div style={{ height: 2, background: `linear-gradient(90deg, ${accentColor}, transparent)`, borderRadius: '16px 16px 0 0' }} />
+
       {/* Section header */}
-      <div className={`flex items-center justify-between px-4 py-3 flex-shrink-0 border-b ${headerBg}`} style={{ borderColor: headerBorder }}>
+      <div
+        className="flex items-center justify-between px-4 py-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
         <div className="flex items-center gap-2.5">
-          <span className="text-xl">{emoji}</span>
-          <h2 className="text-[13px] font-bold tracking-tight" style={{ color }}>{title}</h2>
+          <span style={{ color: accentColor }}>{headerIcon}</span>
+          <h2 className="text-[12px] font-semibold tracking-wide uppercase" style={{ color: 'rgba(232,234,237,0.75)', letterSpacing: '0.06em' }}>{title}</h2>
         </div>
-        <button 
+        <button
           onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors text-muted hover:text-ink"
-          title={isExpanded ? "Close" : "Expand"}
+          className="w-6 h-6 flex items-center justify-center rounded-lg transition-colors cursor-pointer"
+          style={{ color: 'rgba(154,160,166,0.6)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#E8EAED'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(154,160,166,0.6)'; }}
+          title={isExpanded ? 'Close' : 'Expand'}
         >
-          {isExpanded ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-            </svg>
-          )}
+          {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
         </button>
       </div>
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {children}
       </div>
     </div>
   );
+}
+
+/* Panel header icons (small SVGs) */
+function AdviceIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+}
+function ProjectIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+}
+function CalendarIconPanel() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+}
+function PeopleIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+}
+function MeetingIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
 }
 
 export default function DashboardPanel({ geminiConnected, onNeedSettings }: Props) {
@@ -94,37 +154,45 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-canvas relative">
-      
+
       {/* Backdrop for expanded panel */}
       {expandedPanel && (
-        <div 
-          className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-40 fade-in" 
+        <div
+          className="fixed inset-0 z-40 fade-in"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
           onClick={() => setExpandedPanel(null)}
         />
       )}
 
       {/* Top bar */}
-      <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-white border-b border-border">
+      <div
+        className="flex-shrink-0 flex items-center justify-between px-6 py-4"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: '#0D0D11' }}
+      >
         <div>
-          <h1 className="text-[17px] font-extrabold text-ink tracking-tight">
-            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋
+          <h1 className="text-[16px] font-bold text-ink tracking-tight">
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
           </h1>
-          <p className="text-[12px] text-muted mt-0.5">Workspace intelligence — auto-generated from Gmail, Drive & Calendar</p>
+          <p className="text-[12px] text-subtle mt-0.5">Workspace intelligence · Gmail, Drive &amp; Calendar</p>
         </div>
         <div className="flex items-center gap-3">
           {!geminiConnected && (
-            <button onClick={onNeedSettings} className="px-3 py-1.5 rounded-xl text-[12px] font-bold text-white" style={{ background: 'linear-gradient(135deg,#F59E0B,#EF4444)' }}>
-              🔑 Add Gemini key
+            <button
+              onClick={onNeedSettings}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all cursor-pointer"
+              style={{ background: 'rgba(251,188,5,0.15)', border: '1px solid rgba(251,188,5,0.25)', color: '#FDD663' }}
+            >
+              <KeyIcon /> Add Gemini key
             </button>
           )}
-          {err && <span className="text-[12px] text-red-600 font-medium">{err}</span>}
-          {insights?.lastScanTime && <span className="text-[12px] text-subtle">{ago(insights.lastScanTime)}</span>}
+          {err && <span className="text-[12px] font-medium" style={{ color: '#FF8A80' }}>{err}</span>}
+          {insights?.lastScanTime && <span className="text-[11px] text-subtle">{ago(insights.lastScanTime)}</span>}
           <button
             onClick={scan} disabled={scanning}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-50 cursor-pointer"
+            style={{ background: 'linear-gradient(135deg,#4285F4,#9334E6)', boxShadow: '0 2px 8px rgba(66,133,244,0.25)' }}
           >
-            <span className={scanning ? 'spin inline-block' : 'inline-block'} style={{ fontSize: 14 }}>↻</span>
+            <span className={scanning ? 'spin inline-block' : 'inline-block'}><RefreshIcon /></span>
             {scanning ? 'Scanning…' : 'Refresh'}
           </button>
         </div>
@@ -134,33 +202,35 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
       {isLoading && !insights?.lastScanTime && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-5xl mb-4">{scanning ? '⚡' : '✦'}</div>
+            <div className="grad-text gem-glow mb-4" style={{ fontSize: 48, lineHeight: 1 }}>✦</div>
             <p className="text-[15px] font-bold text-ink mb-2">{scanning ? 'Scanning your workspace…' : 'Loading…'}</p>
             <div className="flex justify-center gap-1.5 mt-3">
-              <span className="dot" style={{ background: '#6366F1' }}/>
-              <span className="dot" style={{ background: '#8B5CF6' }}/>
-              <span className="dot" style={{ background: '#EC4899' }}/>
+              <span className="dot" style={{ background: '#4285F4' }}/>
+              <span className="dot" style={{ background: '#9334E6' }}/>
+              <span className="dot" style={{ background: '#E8437B' }}/>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bento grid — fills remaining height */}
+      {/* Bento grid */}
       {(!isLoading || insights?.lastScanTime) && (
         <div
           className="flex-1 min-h-0 p-4"
           style={{
             display: 'grid',
-            gap: 12,
+            gap: 10,
             gridTemplateColumns: '1fr 1fr 1fr',
             gridTemplateRows: '1fr',
           }}
         >
-          {/* Left column: Advice + Projects stacked */}
-          <div className="flex flex-col gap-3 min-h-0">
+          {/* Left column: Advice + Projects */}
+          <div className="flex flex-col gap-2.5 min-h-0">
             <div className="flex-1 min-h-0">
-              <Panel 
-                emoji="🎯" title="Strategic Advice" color="#DC2626" headerBg="bg-red-50" headerBorder="#FECACA"
+              <Panel
+                accentColor="#FF6E6E"
+                title="Strategic Advice"
+                headerIcon={<AdviceIcon />}
                 isExpanded={expandedPanel === 'advice'}
                 onToggleExpand={() => toggleExpand('advice')}
               >
@@ -168,8 +238,10 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
               </Panel>
             </div>
             <div className="flex-1 min-h-0">
-              <Panel 
-                emoji="🚀" title="Active Projects" color="#059669" headerBg="bg-emerald-50" headerBorder="#6EE7B7"
+              <Panel
+                accentColor="#34A853"
+                title="Active Projects"
+                headerIcon={<ProjectIcon />}
                 isExpanded={expandedPanel === 'projects'}
                 onToggleExpand={() => toggleExpand('projects')}
               >
@@ -178,10 +250,12 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
             </div>
           </div>
 
-          {/* 📅 Calendar — middle */}
+          {/* Calendar — middle */}
           <div className="min-h-0">
-            <Panel 
-              emoji="📅" title="Upcoming Events" color="#2563EB" headerBg="bg-blue-50" headerBorder="#93C5FD"
+            <Panel
+              accentColor="#4285F4"
+              title="Upcoming Events"
+              headerIcon={<CalendarIconPanel />}
               isExpanded={expandedPanel === 'calendar'}
               onToggleExpand={() => toggleExpand('calendar')}
             >
@@ -189,11 +263,13 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
             </Panel>
           </div>
 
-          {/* Right column: People + Meetings stacked */}
-          <div className="flex flex-col gap-3 min-h-0">
+          {/* Right column: People + Meetings */}
+          <div className="flex flex-col gap-2.5 min-h-0">
             <div className="flex-1 min-h-0">
-              <Panel 
-                emoji="👥" title="People Briefings" color="#7C3AED" headerBg="bg-violet-50" headerBorder="#C4B5FD"
+              <Panel
+                accentColor="#9334E6"
+                title="People Briefings"
+                headerIcon={<PeopleIcon />}
                 isExpanded={expandedPanel === 'people'}
                 onToggleExpand={() => toggleExpand('people')}
               >
@@ -201,8 +277,10 @@ export default function DashboardPanel({ geminiConnected, onNeedSettings }: Prop
               </Panel>
             </div>
             <div className="flex-1 min-h-0">
-              <Panel 
-                emoji="📝" title="Meeting Summaries" color="#D97706" headerBg="bg-amber-50" headerBorder="#FCD34D"
+              <Panel
+                accentColor="#FFA000"
+                title="Meeting Summaries"
+                headerIcon={<MeetingIcon />}
                 isExpanded={expandedPanel === 'meetings'}
                 onToggleExpand={() => toggleExpand('meetings')}
               >

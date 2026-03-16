@@ -67,9 +67,9 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-canvas">
         <div className="flex gap-1.5">
-          <span className="dot" style={{ background: '#6366F1' }}/>
-          <span className="dot" style={{ background: '#8B5CF6' }}/>
-          <span className="dot" style={{ background: '#EC4899' }}/>
+          <span className="dot" style={{ background: '#4285F4' }}/>
+          <span className="dot" style={{ background: '#9334E6' }}/>
+          <span className="dot" style={{ background: '#E8437B' }}/>
         </div>
       </div>
     );

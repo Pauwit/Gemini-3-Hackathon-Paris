@@ -12,40 +12,55 @@ interface Props {
   loading: boolean;
 }
 
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+    >
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  );
+}
+
 function MeetingCard({ meeting }: { meeting: MeetingSummary }) {
   const [expanded, setExpanded] = useState(false);
-  const preview = meeting.summary.split('\n').slice(0, 2).join('\n');
 
   return (
-    <div className="card p-4">
-      <div
-        className="flex items-start justify-between gap-2 cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <div
+      className="rounded-xl overflow-hidden cursor-pointer transition-all"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="flex items-start justify-between gap-2 p-4">
         <div>
-          <p className="font-semibold text-text-primary text-sm">{meeting.title}</p>
-          <p className="text-text-muted text-xs mt-0.5">{meeting.date}</p>
+          <p className="font-semibold text-ink text-[13px]">{meeting.title}</p>
+          <p className="text-muted text-[11px] mt-0.5">{meeting.date}</p>
         </div>
-        <svg
-          className={`w-4 h-4 text-text-muted flex-shrink-0 mt-0.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <span style={{ color: 'rgba(154,160,166,0.6)', flexShrink: 0, marginTop: 2 }}>
+          <ChevronIcon expanded={expanded} />
+        </span>
       </div>
 
       {meeting.participants.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-1 px-4 pb-2">
           {meeting.participants.map((p, i) => (
-            <span key={i} className="text-xs bg-surface-medium text-text-secondary px-2 py-0.5 rounded-full">
+            <span
+              key={i}
+              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#9AA0A6', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
               {p}
             </span>
           ))}
         </div>
       )}
 
-      <p className={`text-text-secondary text-xs mt-2 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
-        {expanded ? meeting.summary : preview}
+      <p
+        className={`text-muted text-[12px] px-4 pb-4 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
+        style={{ transition: 'all 0.2s ease' }}
+      >
+        {meeting.summary}
       </p>
     </div>
   );
@@ -56,14 +71,14 @@ export default function MeetingSummariesSection({ meetings, loading }: Props) {
 
   if (meetings.length === 0) {
     return (
-      <p className="text-text-muted text-sm py-4">
-        No meeting summaries yet. Meeting summaries will appear here after you use the live meeting feature.
+      <p className="text-muted text-[13px] py-4">
+        No meeting summaries yet. They will appear here after you use the live meeting feature.
       </p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {meetings.map((meeting, i) => (
         <MeetingCard key={i} meeting={meeting} />
       ))}

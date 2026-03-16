@@ -2,27 +2,27 @@ import { PersonInsight } from '@/lib/types';
 import InsightSkeleton from './InsightSkeleton';
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg,#6366F1,#8B5CF6)',
-  'linear-gradient(135deg,#3B82F6,#06B6D4)',
-  'linear-gradient(135deg,#10B981,#3B82F6)',
-  'linear-gradient(135deg,#F59E0B,#EF4444)',
-  'linear-gradient(135deg,#EC4899,#8B5CF6)',
+  'linear-gradient(135deg,#4285F4,#9334E6)',
+  'linear-gradient(135deg,#34A8EB,#4285F4)',
+  'linear-gradient(135deg,#34A853,#34A8EB)',
+  'linear-gradient(135deg,#FFA000,#E8437B)',
+  'linear-gradient(135deg,#E8437B,#9334E6)',
 ];
 
 function contactStatus(dateStr: string) {
   if (!dateStr) return null;
   const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-  if (days === 0) return { label: 'Today', color: '#15803D', bg: '#F0FDF4' };
-  if (days <= 3)  return { label: `${days}d ago`, color: '#15803D', bg: '#F0FDF4' };
-  if (days <= 7)  return { label: `${days}d ago`, color: '#B45309', bg: '#FFFBEB' };
-  return           { label: `${days}d ago`, color: '#B91C1C', bg: '#FEF2F2' };
+  if (days === 0)  return { label: 'Today',      color: '#81C995', bg: 'rgba(52,168,83,0.12)'  };
+  if (days <= 3)   return { label: `${days}d ago`, color: '#81C995', bg: 'rgba(52,168,83,0.10)'  };
+  if (days <= 7)   return { label: `${days}d ago`, color: '#FDD663', bg: 'rgba(251,188,5,0.10)'  };
+  return             { label: `${days}d ago`, color: '#FF8A80', bg: 'rgba(234,67,53,0.10)'  };
 }
 
 export default function PeopleSection({ people, loading }: { people: PersonInsight[]; loading: boolean }) {
   if (loading) return <InsightSkeleton rows={2}/>;
   if (!people.length) return (
     <p className="text-[14px] text-muted py-2">
-      👤 No contacts yet. People profiles appear as you exchange emails and attend meetings.
+      No contacts yet. People profiles appear as you exchange emails and attend meetings.
     </p>
   );
 
@@ -30,36 +30,52 @@ export default function PeopleSection({ people, loading }: { people: PersonInsig
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {people.map((person, i) => {
         const badge = contactStatus(person.lastContact);
-        const grad = AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length];
+        const grad  = AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length];
         return (
-          <div key={i} className="rounded-xl bg-white border border-border p-4 flex flex-col gap-3" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+          <div
+            key={i}
+            className="rounded-xl p-4 flex flex-col gap-3"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-[16px] font-extrabold flex-shrink-0" style={{ background: grad }}>
+              <div
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-[15px] font-extrabold flex-shrink-0"
+                style={{ background: grad }}
+              >
                 {person.name[0]?.toUpperCase() || '?'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-ink truncate">{person.name}</p>
-                <p className="text-[12px] text-muted truncate">{[person.title, person.company].filter(Boolean).join(' at ') || '—'}</p>
+                <p className="text-[13px] font-bold text-ink truncate">{person.name}</p>
+                <p className="text-[11px] text-muted truncate">{[person.title, person.company].filter(Boolean).join(' at ') || '—'}</p>
               </div>
               {badge && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ color: badge.color, background: badge.bg }}>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ color: badge.color, background: badge.bg }}
+                >
                   {badge.label}
                 </span>
               )}
             </div>
-            <p className="text-[13px] text-muted leading-relaxed">{person.summary}</p>
+            <p className="text-[12px] text-muted leading-relaxed">{person.summary}</p>
             {person.keyConcerns.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {person.keyConcerns.map((c, j) => (
-                  <span key={j} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">{c}</span>
+                  <span
+                    key={j}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(147,52,230,0.10)', color: '#C084FC', border: '1px solid rgba(147,52,230,0.2)' }}
+                  >
+                    {c}
+                  </span>
                 ))}
               </div>
             )}
             {person.upcomingInteractions.length > 0 && (
-              <div className="border-t border-border pt-2.5 flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 pt-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 {person.upcomingInteractions.map((item, j) => (
-                  <div key={j} className="flex gap-2 text-[12px] font-medium text-slate-600">
-                    <span className="text-violet-500">↗</span>{item}
+                  <div key={j} className="flex gap-2 text-[12px] font-medium text-muted">
+                    <span style={{ color: '#C084FC' }}>↗</span>{item}
                   </div>
                 ))}
               </div>

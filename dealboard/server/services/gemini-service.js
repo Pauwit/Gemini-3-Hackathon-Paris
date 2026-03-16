@@ -9,8 +9,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
-const ORCHESTRATOR_MODEL = 'gemini-3-flash-lite-preview';
-const ANSWER_MODEL = 'gemini-3-flash-lite-preview';
+const ORCHESTRATOR_MODEL = 'gemini-2.5-flash';
+const ANSWER_MODEL = 'gemini-2.5-flash';
 
 /**
  * Step 1 — Orchestrator.
