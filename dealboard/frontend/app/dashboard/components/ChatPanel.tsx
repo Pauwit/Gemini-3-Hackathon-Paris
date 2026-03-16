@@ -25,10 +25,10 @@ function Msg({ msg }: { msg: ChatMessageType }) {
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {!isUser && (
         <div
-          className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 text-base grad-text"
-          style={{ background: 'rgba(66,133,244,0.15)', border: '1px solid rgba(66,133,244,0.25)', fontSize: 16 }}
+          className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 gem-glow"
+          style={{ background: 'linear-gradient(135deg, rgba(66,133,244,0.15), rgba(147,52,230,0.2))', border: '1px solid rgba(147,52,230,0.35)', fontSize: 16 }}
         >
-          ✦
+          <span className="grad-text">✦</span>
         </div>
       )}
       <div className="max-w-[78%] flex flex-col gap-1.5">
@@ -113,9 +113,9 @@ export default function ChatPanel({ geminiConnected, onNeedSettings }: { geminiC
         {loading && (
           <div className="flex gap-3">
             <div
-              className="w-8 h-8 rounded-2xl flex items-center justify-center text-base flex-shrink-0 grad-text"
+              className="w-8 h-8 rounded-2xl flex items-center justify-center text-base flex-shrink-0"
               style={{ background: 'rgba(66,133,244,0.15)', border: '1px solid rgba(66,133,244,0.25)' }}
-            >✦</div>
+            ><span className="grad-text">✦</span></div>
             <div
               className="rounded-2xl rounded-tl-sm px-4 py-3"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
