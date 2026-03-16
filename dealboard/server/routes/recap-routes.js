@@ -11,6 +11,27 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dataStore = require('../services/data-store');
 const logger = require('../utils/logger');
 
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+
+async function generateWithFallback(apiKey, callFn) {
+  let lastErr;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      return await callFn(model);
+    } catch (err) {
+      lastErr = err;
+      const isUnavailable = err.message?.includes('503') || err.message?.includes('high demand')
+        || err.message?.includes('overloaded') || err.message?.includes('404')
+        || err.message?.includes('no longer available') || err.message?.includes('not found');
+      if (!isUnavailable) throw err;
+      logger.warn(`[Recap] Model ${modelName} unavailable, trying next fallback...`);
+    }
+  }
+  throw lastErr;
+}
+
 const router = express.Router();
 
 function requireAuth(req, res, next) {
@@ -34,25 +55,22 @@ router.post('/api/meeting/recap', requireAuth, async (req, res) => {
 
     const fullTranscript = segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n');
 
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const result = await generateWithFallback(geminiKey, (model) => model.generateContent(`You are a business assistant expert in sales meetings. The transcript may be in French, English, or mixed — always respond in ENGLISH.
+Analyze this meeting transcript and generate a structured recap.
 
-    const result = await model.generateContent(`Tu es un assistant business expert en réunions commerciales.
-Analyse cette transcription de réunion et génère un recap structuré.
-
-TRANSCRIPTION:
+TRANSCRIPT:
 ${fullTranscript}
 
-Génère un JSON valide avec cette structure EXACTE (sans markdown, juste le JSON):
+Generate a valid JSON with this EXACT structure (no markdown, just raw JSON):
 {
-  "summary": "Résumé de la réunion en 2-3 phrases",
-  "decisions": ["Décision 1", "Décision 2"],
-  "actionItems": [{"who": "Prénom ou rôle", "what": "Action à faire", "deadline": "Échéance si mentionnée ou null"}],
-  "keyTopics": ["Sujet abordé 1", "Sujet abordé 2"],
-  "nextSteps": ["Prochaine étape 1", "Prochaine étape 2"]
+  "summary": "Meeting summary in 2-3 sentences",
+  "decisions": ["Decision 1", "Decision 2"],
+  "actionItems": [{"who": "First name or role", "what": "Action to take", "deadline": "Deadline if mentioned or null"}],
+  "keyTopics": ["Topic 1", "Topic 2"],
+  "nextSteps": ["Next step 1", "Next step 2"]
 }
 
-Réponds UNIQUEMENT avec le JSON brut.`);
+Respond ONLY with the raw JSON.`));
 
     const raw = result.response.text().trim();
 

@@ -12,10 +12,35 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+
+async function generateWithFallback(apiKey, callFn) {
+  let lastErr;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      return await callFn(model);
+    } catch (err) {
+      lastErr = err;
+      const isUnavailable = err.message?.includes('503') || err.message?.includes('high demand')
+        || err.message?.includes('overloaded') || err.message?.includes('404')
+        || err.message?.includes('no longer available') || err.message?.includes('not found');
+      if (!isUnavailable) throw err;
+      logger.warn(`[WS] Model ${modelName} unavailable, trying next fallback...`);
+    }
+  }
+  throw lastErr;
+}
+
 const CONTEXT_KEYWORDS = [
-  'projet', 'contrat', 'roadmap', 'budget', 'client', 'mail',
-  'document', 'stratégie', 'deadline', 'prix', 'offre', 'deal',
-  'négociation', 'réunion', 'invoice', 'proposal', 'meeting',
+  // French
+  'projet', 'contrat', 'budget', 'client', 'document',
+  'stratégie', 'deadline', 'prix', 'offre', 'deal',
+  'négociation', 'réunion', 'facture',
+  // English
+  'project', 'contract', 'roadmap', 'email', 'strategy',
+  'invoice', 'proposal', 'meeting', 'negotiation',
 ];
 
 const CHUNKS_PER_SUMMARY = 3; // 3 × 5s = ~15s
@@ -44,22 +69,20 @@ function setupAudioWebSocket(wss, sessionParser) {
 
       try {
         const base64Audio = Buffer.from(data).toString('base64');
-        const genAI = new GoogleGenerativeAI(ws.geminiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         // Step 1 — transcribe the 5s chunk
-        const txResult = await model.generateContent([
+        const txResult = await generateWithFallback(ws.geminiKey, (model) => model.generateContent([
           {
             inlineData: { data: base64Audio, mimeType: 'audio/webm;codecs=opus' },
           },
-          `Tu es un transcripteur audio STRICT. Règles absolues :
-1. Transcris UNIQUEMENT les paroles humaines clairement audibles dans cet enregistrement.
-2. Si tu as le moindre doute sur un mot ou une phrase, retourne SILENCE.
-3. N'invente RIEN. Ne complète RIEN. Ne déduis RIEN.
-4. Si l'audio contient du bruit de fond, de la musique, du silence, ou de la parole inaudible, retourne exactement : SILENCE
-5. Retourne UNIQUEMENT la transcription brute ou le mot SILENCE. Aucun autre commentaire.
-6. En cas de doute : SILENCE.`,
-        ]);
+          `You are a STRICT audio transcriber. Absolute rules:
+1. Transcribe ONLY clearly audible human speech in this recording. The speech may be in any language (English, French, etc.) — transcribe as-is.
+2. If you have any doubt about a word or phrase, return SILENCE.
+3. Do NOT invent, complete, or infer anything.
+4. If the audio contains background noise, music, silence, or inaudible speech, return exactly: SILENCE
+5. Return ONLY the raw transcription or the word SILENCE. No other commentary.
+6. When in doubt: SILENCE.`,
+        ]));
 
         const rawText = txResult.response.text().trim();
 
@@ -69,7 +92,17 @@ function setupAudioWebSocket(wss, sessionParser) {
           logger.warn('[WS] Rejected likely hallucinated transcript (too long for 5s chunk)');
           return;
         }
-        const refusalPatterns = [/^je\s+(ne\s+)?peux/i, /^désolé/i, /^il\s+n['']y\s+a\s+pas/i, /^aucune\s+parole/i, /^l['']audio/i];
+        const refusalPatterns = [
+          // French refusals
+          /^je\s+(ne\s+)?peux/i, /^désolé/i, /^il\s+n['']y\s+a\s+pas/i, /^aucune\s+parole/i, /^l['']audio/i,
+          // English refusals
+          /^i\s+(can|cannot|can't)/i, /^sorry/i, /^there\s+is\s+no/i, /^no\s+(speech|audio|words)/i, /^the\s+audio/i,
+          // Hallucination patterns — model leaking its own prompt or describing itself
+          /transcri(be|pt|ption)/i, /audio\s+(file|chunk|content|data|recording)/i,
+          /strict\s+rules?/i, /as\s+an\s+AI/i, /AI\s+assistant/i, /language\s+model/i,
+          /inaudible\s+speech/i, /background\s+noise/i, /clearly\s+audible/i,
+          /return\s+silence/i, /word\s+silence/i,
+        ];
         if (refusalPatterns.some(p => p.test(rawText))) return;
 
         // Accumulate
@@ -87,21 +120,21 @@ function setupAudioWebSocket(wss, sessionParser) {
           const accumulated = ws.transcriptBuffer.join(' ');
           ws.transcriptBuffer = [];
 
-          const summaryResult = await model.generateContent(
-            `Voici une transcription brute d'une conversation des 15 dernières secondes :
+          const summaryResult = await generateWithFallback(ws.geminiKey, (model) => model.generateContent(
+            `Here is a raw transcript from the last 15 seconds of a conversation (may be in French, English, or mixed):
 "${accumulated}"
 
-Écris un résumé factuel en 2-3 phrases courtes de ce qui vient d'être dit.
-Reste neutre, concis, et fidèle au contenu.
-Si le contenu est trop fragmenté ou incompréhensible, réponds exactement : SKIP`
-          );
+Write a factual summary in 2-3 short sentences in ENGLISH of what was just said.
+Stay neutral, concise, and faithful to the content.
+If the content is too fragmented or incomprehensible, respond exactly: SKIP`
+          ));
 
           const summary = summaryResult.response.text().trim();
           if (!summary || summary === 'SKIP') return;
 
           ws.send(JSON.stringify({
             type: 'summary',
-            timestamp: new Date().toLocaleTimeString('fr-FR', {
+            timestamp: new Date().toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
               second: '2-digit',

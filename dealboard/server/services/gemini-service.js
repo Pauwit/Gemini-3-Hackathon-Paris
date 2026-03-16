@@ -9,8 +9,26 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
-const ORCHESTRATOR_MODEL = 'gemini-2.5-flash';
-const ANSWER_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+
+async function generateWithFallback(apiKey, callFn) {
+  let lastErr;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      return await callFn(model);
+    } catch (err) {
+      lastErr = err;
+      const isUnavailable = err.message?.includes('503') || err.message?.includes('high demand')
+        || err.message?.includes('overloaded') || err.message?.includes('404')
+        || err.message?.includes('no longer available') || err.message?.includes('not found');
+      if (!isUnavailable) throw err;
+      logger.warn(`[Gemini] Model ${modelName} unavailable, trying next fallback...`);
+    }
+  }
+  throw lastErr;
+}
 
 /**
  * Step 1 — Orchestrator.
@@ -18,10 +36,7 @@ const ANSWER_MODEL = 'gemini-2.5-flash';
  * Now improved to handle transcription errors by cross-referencing known entity names.
  */
 async function orchestrate(apiKey, question, knownEntities = []) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: ORCHESTRATOR_MODEL });
-
-  const entityContext = knownEntities.length > 0 
+  const entityContext = knownEntities.length > 0
     ? `Known files/projects: ${knownEntities.join(', ')}`
     : '';
 
@@ -47,7 +62,7 @@ Rules:
 - Use the known entities to guide the queries.`;
 
   logger.debug('Orchestrator generating multi-queries...');
-  const result = await model.generateContent(prompt);
+  const result = await generateWithFallback(apiKey, (model) => model.generateContent(prompt));
   const text = result.response.text();
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -61,9 +76,6 @@ Rules:
  * Uses the aggregated workspace context to answer the user's question.
  */
 async function answerWithContext(apiKey, question, workspaceData) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: ANSWER_MODEL });
-
   const context = formatWorkspaceContext(workspaceData);
   const hasData = workspaceData.sourcesUsed.length > 0;
 
@@ -87,7 +99,7 @@ TITLE: <Short Title>
 INSIGHT: <One punchy sentence> (<Source>)`;
 
   logger.debug('Generating surgical live answer...');
-  const result = await model.generateContent(prompt);
+  const result = await generateWithFallback(apiKey, (model) => model.generateContent(prompt));
   let answer = result.response.text().trim();
   
   if (answer.includes('NULL_VOID')) return { answer: null, sources: [] };

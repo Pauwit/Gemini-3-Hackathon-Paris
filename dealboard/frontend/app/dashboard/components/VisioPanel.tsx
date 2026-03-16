@@ -294,7 +294,7 @@ export default function VisioPanel() {
         >
           <div>
             <h1 className="text-[19px] font-bold text-ink tracking-tight">Meeting Recap</h1>
-            <p className="text-[12px] text-muted mt-1">{transcript.length} résumés générés</p>
+            <p className="text-[12px] text-muted mt-1">{transcript.length} summaries generated</p>
           </div>
           <button
             onClick={() => setShowRecap(false)}
@@ -386,7 +386,7 @@ export default function VisioPanel() {
             {transcript.length > 0 && (
               <details className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                 <summary className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-subtle cursor-pointer" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  Résumés live ({transcript.length})
+                  Live Summaries ({transcript.length})
                 </summary>
                 <div className="p-6 space-y-3 max-h-80 overflow-y-auto">
                   {transcript.map((seg, i) => (
@@ -451,7 +451,7 @@ export default function VisioPanel() {
                   onClick={() => { setActiveTab('transcript'); }}
                 >
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"/>
-                  <span className="text-[11px] font-black text-white uppercase tracking-wider">{transcript.length} résumés</span>
+                  <span className="text-[11px] font-black text-white uppercase tracking-wider">{transcript.length} summaries</span>
                 </div>
               )}
             </div>
@@ -521,7 +521,7 @@ export default function VisioPanel() {
                   background: 'transparent',
                 }}
               >
-                {tab === 'copilot' ? '✦ Co-Pilot' : `Résumé${transcript.length > 0 ? ` (${transcript.length})` : ''}`}
+                {tab === 'copilot' ? '✦ Co-Pilot' : `Summary${transcript.length > 0 ? ` (${transcript.length})` : ''}`}
               </button>
             ))}
           </div>
@@ -594,8 +594,8 @@ export default function VisioPanel() {
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {transcript.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center px-10 py-20">
-                  <p className="text-[12px] text-subtle font-semibold uppercase tracking-tight">En écoute…</p>
-                  <p className="text-[11px] text-subtle mt-2 opacity-60">Un résumé apparaîtra toutes les 15 secondes.</p>
+                  <p className="text-[12px] text-subtle font-semibold uppercase tracking-tight">Listening…</p>
+                  <p className="text-[11px] text-subtle mt-2 opacity-60">A summary will appear every 15 seconds.</p>
                 </div>
               ) : (
                 <>

@@ -7,7 +7,26 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
-const MODEL = 'gemini-2.5-pro';
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+
+async function generateWithFallback(apiKey, callFn) {
+  let lastErr;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      return await callFn(model);
+    } catch (err) {
+      lastErr = err;
+      const isUnavailable = err.message?.includes('503') || err.message?.includes('high demand')
+        || err.message?.includes('overloaded') || err.message?.includes('404')
+        || err.message?.includes('no longer available') || err.message?.includes('not found');
+      if (!isUnavailable) throw err;
+      logger.warn(`[Insight] Model ${modelName} unavailable, trying next fallback...`);
+    }
+  }
+  throw lastErr;
+}
 
 /**
  * Generates structured insights from workspace data.
@@ -18,9 +37,6 @@ async function generateInsights(geminiApiKey, workspaceData) {
     logger.warn('No Gemini API key — skipping insight generation');
     return null;
   }
-
-  const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: MODEL });
 
   const context = formatWorkspaceContext(workspaceData);
 
@@ -81,7 +97,7 @@ Rules:
 - Return ONLY valid JSON.`;
 
   logger.debug('Generating insights with Gemini...');
-  const result = await model.generateContent(prompt);
+  const result = await generateWithFallback(geminiApiKey, (model) => model.generateContent(prompt));
   const text = result.response.text();
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);

@@ -31,9 +31,25 @@ router.post('/api/settings', requireAuth, async (req, res) => {
 
   // Validate the key by making a minimal test call
   try {
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    await model.generateContent('Say "ok" in one word.');
+    const VALIDATION_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+    let validated = false;
+    let lastErr;
+    for (const modelName of VALIDATION_MODELS) {
+      try {
+        const genAI = new GoogleGenerativeAI(key);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        await model.generateContent('Say "ok" in one word.');
+        validated = true;
+        break;
+      } catch (err) {
+        lastErr = err;
+        const isUnavailable = err.message?.includes('503') || err.message?.includes('high demand')
+          || err.message?.includes('overloaded') || err.message?.includes('404')
+          || err.message?.includes('no longer available') || err.message?.includes('not found');
+        if (!isUnavailable) throw err;
+      }
+    }
+    if (!validated) throw lastErr;
 
     // Key is valid — store in session and update active user for scanner
     req.session.user.geminiApiKey = key;
