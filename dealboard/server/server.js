@@ -5,9 +5,11 @@
  */
 
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
+const { WebSocketServer } = require('ws');
 const config = require('./config');
 const { setupGoogleAuth } = require('./auth/google-auth');
 const logger = require('./utils/logger');
@@ -20,11 +22,17 @@ const chatRoutes = require('./routes/chat-routes');
 const insightsRoutes = require('./routes/insights-routes');
 const scannerRoutes = require('./routes/scanner-routes');
 const visioRoutes = require('./routes/visio-routes');
+const recapRoutes = require('./routes/recap-routes');
+const { setupAudioWebSocket } = require('./routes/audio-ws');
 
 // Scanner
 const { startScanner } = require('./services/scanner-service');
 
 const app = express();
+const server = http.createServer(app);
+
+// WebSocket server for audio streaming (path: /audio)
+const wss = new WebSocketServer({ server, path: '/audio' });
 
 // CORS — allow frontend with cookies
 app.use(cors({
@@ -39,7 +47,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session management — tokens and Gemini key stored here per user
-app.use(session({
+// Extracted so we can reuse it in the WebSocket handler
+const sessionMiddleware = session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
@@ -49,7 +58,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax',
   },
-}));
+});
+app.use(sessionMiddleware);
 
 // Google OAuth (Passport setup)
 setupGoogleAuth(app);
@@ -62,6 +72,10 @@ app.use(chatRoutes);
 app.use(insightsRoutes);
 app.use(scannerRoutes);
 app.use(visioRoutes);
+app.use(recapRoutes);
+
+// Attach WebSocket audio handler (shares session with Express)
+setupAudioWebSocket(wss, sessionMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -82,9 +96,10 @@ app.use((err, req, res, _next) => {
 // Start background scanner
 startScanner();
 
-// Start server
-app.listen(config.port, () => {
+// Start server (HTTP + WebSocket share the same port)
+server.listen(config.port, () => {
   logger.info(`DealBoard server running on http://localhost:${config.port}`);
+  logger.info(`WebSocket audio endpoint: ws://localhost:${config.port}/audio`);
   logger.info(`Frontend URL: ${config.frontendUrl}`);
   logger.info(`Google OAuth callback: ${config.google.callbackUrl}`);
 

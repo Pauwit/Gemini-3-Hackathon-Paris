@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Insights } from '@/lib/types';
 import { api } from '@/lib/api';
 
+const WS_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001')
+  .replace(/^http/, 'ws') + '/audio';
+
 interface Bubble {
   id: string;
   type: 'doc' | 'info' | 'action';
@@ -11,6 +14,19 @@ interface Bubble {
   title: string;
   content: string;
   timestamp: string;
+}
+
+interface SummarySegment {
+  timestamp: string;
+  text: string;
+}
+
+interface MeetingRecap {
+  summary: string;
+  decisions: string[];
+  actionItems: { who: string; what: string; deadline: string | null }[];
+  keyTopics: string[];
+  nextSteps: string[];
 }
 
 function VideoIcon() {
@@ -31,8 +47,18 @@ export default function VisioPanel() {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [transcript, setTranscript] = useState<SummarySegment[]>([]);
+  const [activeTab, setActiveTab] = useState<'copilot' | 'transcript'>('copilot');
+  const [recap, setRecap] = useState<MeetingRecap | null>(null);
+  const [recapLoading, setRecapLoading] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
 
   const recognitionRef = useRef<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const transcriptRef = useRef<SummarySegment[]>([]);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,6 +71,16 @@ export default function VisioPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Keep ref in sync with state for access inside WS callbacks
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
+
+  // Auto-scroll transcript to bottom
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcript]);
+
   const addBubble = (bubble: Omit<Bubble, 'id' | 'timestamp'>) => {
     const newBubble: Bubble = {
       ...bubble,
@@ -54,6 +90,7 @@ export default function VisioPanel() {
     setBubbles(prev => [newBubble, ...prev]);
   };
 
+  // Web Speech API — instant visual feedback on mic input (user only)
   const initSpeech = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -63,7 +100,7 @@ export default function VisioPanel() {
     recognition.interimResults = true;
     recognition.lang = 'fr-FR';
 
-    recognition.onresult = async (event: any) => {
+    recognition.onresult = (event: any) => {
       let interimTranscript = '';
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -71,26 +108,17 @@ export default function VisioPanel() {
         else interimTranscript += event.results[i][0].transcript;
       }
       setLiveSpeech(finalTranscript || interimTranscript);
-
-      if (finalTranscript) {
-        const text = finalTranscript.toLowerCase();
-        const keywords = ['projet', 'contrat', 'roadmap', 'réunion', 'budget', 'client', 'mail', 'document', 'stratégie'];
-        if (keywords.some(k => text.includes(k))) {
-          processContext(text);
-        }
-      }
     };
 
-    recognition.onend = () => { if (isListening) recognition.start(); };
+    recognition.onend = () => { if (recognitionRef.current) recognition.start(); };
     recognitionRef.current = recognition;
     recognition.start();
   };
 
-  const processContext = async (text: string) => {
+  const processContext = useCallback(async (text: string) => {
     setIsTyping(true);
     try {
       const res = await api.sendMessage(`Live context: "${text}". Search for files/emails and summarize in ONE punchy sentence.`);
-
       if (res.success && res.data.answer) {
         const raw = res.data.answer;
         const titleMatch   = raw.match(/TITLE:\s*(.*)/i);
@@ -104,19 +132,102 @@ export default function VisioPanel() {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, []);
+
+  /**
+   * Audio streaming via WebSocket.
+   * Mixes tab audio (all participants) + local mic, streams to backend for Gemini transcription.
+   */
+  const initAudioStreaming = useCallback(async (displayStream: MediaStream) => {
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = async () => {
+      try {
+        const audioCtx = new AudioContext({ sampleRate: 16000 });
+        audioCtxRef.current = audioCtx;
+        const dest = audioCtx.createMediaStreamDestination();
+
+        // Tab audio: all Meet participants
+        const tabAudioTracks = displayStream.getAudioTracks();
+        if (tabAudioTracks.length > 0) {
+          const tabAudioStream = new MediaStream([tabAudioTracks[0]]);
+          audioCtx.createMediaStreamSource(tabAudioStream).connect(dest);
+        } else {
+          console.warn('[Audio] No audio track from display capture — remote participants may not be transcribed');
+        }
+
+        // Mic audio: local user
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          audioCtx.createMediaStreamSource(micStream).connect(dest);
+        } catch {
+          console.warn('[Audio] Microphone access denied — only tab audio will be transcribed');
+        }
+
+        // Check supported MIME type
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm';
+
+        const recorder = new MediaRecorder(dest.stream, { mimeType });
+        recorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            ws.send(e.data);
+          }
+        };
+
+        recorder.start(5000); // 5-second chunks
+      } catch (err) {
+        console.error('[Audio] Failed to set up audio streaming:', err);
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'summary' && msg.text) {
+          const segment: SummarySegment = { timestamp: msg.timestamp, text: msg.text };
+          setTranscript(prev => [...prev, segment]);
+        } else if (msg.type === 'context_trigger' && msg.text) {
+          processContext(msg.text);
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.error('[WS] Audio WebSocket error — URL:', WS_URL, e);
+      setIsListening(false);
+    };
+    ws.onclose = (e) => {
+      console.log('[WS] Audio WebSocket closed', e.code, e.reason);
+      setIsListening(false);
+    };
+  }, [processContext]);
 
   const startMeeting = async () => {
     try {
       setLoading(true);
+      setTranscript([]);
+      setRecap(null);
+      setShowRecap(false);
+
       const res = await api.createMeet();
       if (res.success && res.data.meetLink) {
         window.open(res.data.meetLink, '_blank');
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: true });
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'browser' },
+          audio: true,
+        });
         setAudioStream(stream);
         setIsListening(true);
         setMeetingActive(true);
         initSpeech();
+        initAudioStreaming(stream);
         setTimeout(() => {
           const v = document.getElementById('meet-mirror') as HTMLVideoElement;
           if (v) v.srcObject = stream;
@@ -130,12 +241,172 @@ export default function VisioPanel() {
     }
   };
 
-  const stopListening = () => {
-    if (audioStream) audioStream.getTracks().forEach(track => track.stop());
-    if (recognitionRef.current) recognitionRef.current.stop();
+  const generateRecap = async () => {
+    const segments = transcriptRef.current;
+    if (segments.length === 0) {
+      setShowRecap(true);
+      return;
+    }
+    setRecapLoading(true);
+    try {
+      const res = await fetch(
+        (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001') + '/api/meeting/recap',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ segments }),
+        }
+      );
+      const data = await res.json();
+      if (data.success) setRecap(data.data);
+    } catch (err) {
+      console.error('Recap error:', err);
+    } finally {
+      setRecapLoading(false);
+      setShowRecap(true);
+    }
+  };
+
+  const stopMeeting = async () => {
+    // Stop all media and WS
+    if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+    if (wsRef.current) wsRef.current.close();
+    if (audioCtxRef.current) audioCtxRef.current.close();
     setIsListening(false);
     setAudioStream(null);
+    setLiveSpeech('');
+
+    // Generate recap before leaving
+    await generateRecap();
+    setMeetingActive(false);
   };
+
+  /* ─── Recap view (post-meeting) ─── */
+  if (showRecap) {
+    return (
+      <div className="flex flex-col h-full bg-canvas overflow-y-auto">
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-8 py-5"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: '#0D0D11' }}
+        >
+          <div>
+            <h1 className="text-[19px] font-bold text-ink tracking-tight">Meeting Recap</h1>
+            <p className="text-[12px] text-muted mt-1">{transcript.length} résumés générés</p>
+          </div>
+          <button
+            onClick={() => setShowRecap(false)}
+            className="px-5 py-2 rounded-xl text-[13px] font-bold cursor-pointer"
+            style={{ background: 'rgba(255,255,255,0.06)', color: '#E8EAED', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            Back
+          </button>
+        </div>
+
+        {recapLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                <span className="dot" style={{ background: '#4285F4' }}/>
+                <span className="dot" style={{ background: '#9334E6' }}/>
+                <span className="dot" style={{ background: '#E8437B' }}/>
+              </div>
+              <span className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#8AB4F8' }}>Generating recap…</span>
+            </div>
+          </div>
+        ) : recap ? (
+          <div className="flex-1 p-8 space-y-6 max-w-3xl mx-auto w-full">
+            {/* Summary */}
+            <div className="rounded-2xl p-6" style={{ background: 'rgba(66,133,244,0.08)', border: '1px solid rgba(66,133,244,0.2)' }}>
+              <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#8AB4F8' }}>Summary</p>
+              <p className="text-[14px] text-ink leading-relaxed">{recap.summary}</p>
+            </div>
+
+            {/* Key Topics */}
+            {recap.keyTopics?.length > 0 && (
+              <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-subtle">Key Topics</p>
+                <div className="flex flex-wrap gap-2">
+                  {recap.keyTopics.map((t, i) => (
+                    <span key={i} className="px-3 py-1 rounded-full text-[12px] font-semibold" style={{ background: 'rgba(147,52,230,0.12)', color: '#C084FC', border: '1px solid rgba(147,52,230,0.25)' }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Decisions */}
+            {recap.decisions?.length > 0 && (
+              <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-subtle">Decisions</p>
+                <ul className="space-y-2">
+                  {recap.decisions.map((d, i) => (
+                    <li key={i} className="flex items-start gap-3 text-[13px] text-ink">
+                      <span style={{ color: '#34A853', marginTop: 2 }}>✓</span> {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Action Items */}
+            {recap.actionItems?.length > 0 && (
+              <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-subtle">Action Items</p>
+                <div className="space-y-3">
+                  {recap.actionItems.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(251,188,5,0.06)', border: '1px solid rgba(251,188,5,0.15)' }}>
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5" style={{ background: 'rgba(251,188,5,0.15)', color: '#FDD663' }}>{item.who}</span>
+                      <div>
+                        <p className="text-[13px] text-ink">{item.what}</p>
+                        {item.deadline && <p className="text-[11px] mt-1" style={{ color: '#FDD663' }}>→ {item.deadline}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Next Steps */}
+            {recap.nextSteps?.length > 0 && (
+              <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-subtle">Next Steps</p>
+                <ul className="space-y-2">
+                  {recap.nextSteps.map((s, i) => (
+                    <li key={i} className="flex items-start gap-3 text-[13px] text-ink">
+                      <span style={{ color: '#8AB4F8', marginTop: 2 }}>→</span> {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Transcript raw */}
+            {transcript.length > 0 && (
+              <details className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                <summary className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-subtle cursor-pointer" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  Résumés live ({transcript.length})
+                </summary>
+                <div className="p-6 space-y-3 max-h-80 overflow-y-auto">
+                  {transcript.map((seg, i) => (
+                    <div key={i}>
+                      <span className="text-[10px] font-bold" style={{ color: '#5F6368' }}>{seg.timestamp}</span>
+                      <p className="text-[12px] text-ink mt-0.5 leading-relaxed">{seg.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-subtle text-[13px]">No transcript available to generate recap.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   /* ─── Active meeting view ─── */
   if (meetingActive) {
@@ -171,6 +442,18 @@ export default function VisioPanel() {
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse"/>
                 <span className="text-[11px] font-black text-white uppercase tracking-wider">LIVE</span>
               </div>
+
+              {/* Transcript badge — show last segment */}
+              {transcript.length > 0 && (
+                <div
+                  className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer"
+                  style={{ background: 'rgba(52,168,83,0.85)', backdropFilter: 'blur(8px)' }}
+                  onClick={() => { setActiveTab('transcript'); }}
+                >
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"/>
+                  <span className="text-[11px] font-black text-white uppercase tracking-wider">{transcript.length} résumés</span>
+                </div>
+              )}
             </div>
 
             {/* Controls */}
@@ -191,13 +474,13 @@ export default function VisioPanel() {
                 </span>
               </div>
               <button
-                onClick={() => { stopListening(); setMeetingActive(false); }}
+                onClick={stopMeeting}
                 className="px-8 h-12 rounded-2xl font-bold text-sm tracking-tight transition-all cursor-pointer"
                 style={{ background: 'rgba(234,67,53,0.12)', color: '#FF8A80', border: '1px solid rgba(234,67,53,0.25)' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,67,53,0.8)'; e.currentTarget.style.color = '#fff'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,67,53,0.12)'; e.currentTarget.style.color = '#FF8A80'; }}
               >
-                Leave meeting
+                Leave &amp; Recap
               </button>
             </div>
           </div>
@@ -225,72 +508,112 @@ export default function VisioPanel() {
           className="w-[420px] h-full flex flex-col overflow-hidden"
           style={{ background: '#0D0D11', borderLeft: '1px solid rgba(255,255,255,0.07)' }}
         >
-          <div className="p-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <h3 className="text-ink font-bold text-lg flex items-center gap-2.5">
-              <span className="grad-text gem-glow" style={{ fontSize: 18 }}>✦</span> CO-PILOT
-            </h3>
-            <p className="text-[10px] text-subtle font-bold uppercase tracking-widest mt-1">Direct Insight Engine</p>
+          {/* Tab bar */}
+          <div className="flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            {(['copilot', 'transcript'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                style={{
+                  color: activeTab === tab ? '#E8EAED' : '#5F6368',
+                  borderBottom: activeTab === tab ? '2px solid #4285F4' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                {tab === 'copilot' ? '✦ Co-Pilot' : `Résumé${transcript.length > 0 ? ` (${transcript.length})` : ''}`}
+              </button>
+            ))}
           </div>
 
-          <div
-            className="flex-1 overflow-y-auto p-5 space-y-4"
-            style={{ background: 'radial-gradient(circle at top right, rgba(66,133,244,0.04) 0%, transparent 60%)' }}
-          >
-            {bubbles.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center px-10 py-20">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ background: 'rgba(66,133,244,0.10)', border: '1px solid rgba(66,133,244,0.2)' }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(138,180,248,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/>
-                  </svg>
-                </div>
-                <p className="text-[12px] text-subtle font-semibold uppercase tracking-tight">Passive agent…</p>
-                <p className="text-[11px] text-subtle mt-2 leading-relaxed opacity-60">Key insights will surface as topics are mentioned.</p>
-              </div>
-            )}
-
-            {bubbles.map(bubble => {
-              const accentColor = bubble.priority === 'High' ? '#FF8A80' : bubble.priority === 'Medium' ? '#FDD663' : '#8AB4F8';
-              const accentBg    = bubble.priority === 'High' ? 'rgba(234,67,53,0.10)' : bubble.priority === 'Medium' ? 'rgba(251,188,5,0.10)' : 'rgba(66,133,244,0.10)';
-              const accentBorder= bubble.priority === 'High' ? 'rgba(234,67,53,0.25)' : bubble.priority === 'Medium' ? 'rgba(251,188,5,0.22)' : 'rgba(66,133,244,0.22)';
-              return (
-                <div
-                  key={bubble.id}
-                  className="rounded-2xl p-5 slide-in overflow-hidden relative transition-all"
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderLeft: `3px solid ${accentColor}`,
-                  }}
-                >
-                  <div className="absolute top-0 right-0 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-bl-2xl" style={{ background: accentBg, color: accentColor, borderLeft: `1px solid ${accentBorder}`, borderBottom: `1px solid ${accentBorder}` }}>
-                    {bubble.priority}
-                  </div>
-
-                  <div className="flex items-start gap-4 mb-3 pr-16">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accentBg, border: `1px solid ${accentBorder}` }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-ink font-bold text-[12px] uppercase tracking-tight leading-tight">{bubble.title}</p>
-                      <p className="text-subtle text-[10px] font-bold mt-1 uppercase tracking-widest">{bubble.timestamp}</p>
-                    </div>
-                  </div>
-
-                  <p
-                    className="text-[13px] font-medium leading-relaxed p-3 rounded-xl mb-4"
-                    style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)', color: '#E8EAED' }}
+          {/* Co-Pilot tab */}
+          {activeTab === 'copilot' && (
+            <div
+              className="flex-1 overflow-y-auto p-5 space-y-4"
+              style={{ background: 'radial-gradient(circle at top right, rgba(66,133,244,0.04) 0%, transparent 60%)' }}
+            >
+              {bubbles.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center px-10 py-20">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+                    style={{ background: 'rgba(66,133,244,0.10)', border: '1px solid rgba(66,133,244,0.2)' }}
                   >
-                    {bubble.content}
-                  </p>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(138,180,248,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/>
+                    </svg>
+                  </div>
+                  <p className="text-[12px] text-subtle font-semibold uppercase tracking-tight">Passive agent…</p>
+                  <p className="text-[11px] text-subtle mt-2 leading-relaxed opacity-60">Key insights will surface as topics are mentioned.</p>
                 </div>
-              );
-            })}
-          </div>
+              )}
+
+              {bubbles.map(bubble => {
+                const accentColor = bubble.priority === 'High' ? '#FF8A80' : bubble.priority === 'Medium' ? '#FDD663' : '#8AB4F8';
+                const accentBg    = bubble.priority === 'High' ? 'rgba(234,67,53,0.10)' : bubble.priority === 'Medium' ? 'rgba(251,188,5,0.10)' : 'rgba(66,133,244,0.10)';
+                const accentBorder= bubble.priority === 'High' ? 'rgba(234,67,53,0.25)' : bubble.priority === 'Medium' ? 'rgba(251,188,5,0.22)' : 'rgba(66,133,244,0.22)';
+                return (
+                  <div
+                    key={bubble.id}
+                    className="rounded-2xl p-5 slide-in overflow-hidden relative transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderLeft: `3px solid ${accentColor}`,
+                    }}
+                  >
+                    <div className="absolute top-0 right-0 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-bl-2xl" style={{ background: accentBg, color: accentColor, borderLeft: `1px solid ${accentBorder}`, borderBottom: `1px solid ${accentBorder}` }}>
+                      {bubble.priority}
+                    </div>
+
+                    <div className="flex items-start gap-4 mb-3 pr-16">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accentBg, border: `1px solid ${accentBorder}` }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-ink font-bold text-[12px] uppercase tracking-tight leading-tight">{bubble.title}</p>
+                        <p className="text-subtle text-[10px] font-bold mt-1 uppercase tracking-widest">{bubble.timestamp}</p>
+                      </div>
+                    </div>
+
+                    <p
+                      className="text-[13px] font-medium leading-relaxed p-3 rounded-xl mb-4"
+                      style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)', color: '#E8EAED' }}
+                    >
+                      {bubble.content}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Transcript tab */}
+          {activeTab === 'transcript' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {transcript.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center px-10 py-20">
+                  <p className="text-[12px] text-subtle font-semibold uppercase tracking-tight">En écoute…</p>
+                  <p className="text-[11px] text-subtle mt-2 opacity-60">Un résumé apparaîtra toutes les 15 secondes.</p>
+                </div>
+              ) : (
+                <>
+                  {transcript.map((seg, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl p-3"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <span className="text-[10px] font-bold" style={{ color: '#5F6368' }}>{seg.timestamp}</span>
+                      <p className="text-[12px] text-ink mt-1 leading-relaxed">{seg.text}</p>
+                    </div>
+                  ))}
+                  <div ref={transcriptEndRef}/>
+                </>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     );
