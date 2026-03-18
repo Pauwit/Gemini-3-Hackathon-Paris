@@ -50,6 +50,6 @@ npm run dev
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Express, Passport.js (Google OAuth)
-- **AI**: Gemini 2.0 Flash (via user's own API key)
+- **AI**: Gemini 3.1 Pro (via user's own API key)
 - **Workspace**: Gmail, Drive, Calendar APIs
 - **Auth**: Google OAuth 2.0, tokens stored in server-side session
