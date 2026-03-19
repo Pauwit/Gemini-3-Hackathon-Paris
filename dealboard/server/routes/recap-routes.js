@@ -95,8 +95,11 @@ Respond ONLY with the raw JSON.`));
       if (!Array.isArray(currentInsights.meetingSummaries)) {
         currentInsights.meetingSummaries = [];
       }
+      const meetingDate = new Date();
       currentInsights.meetingSummaries.unshift({
-        date: new Date().toISOString(),
+        title: `Meeting – ${meetingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+        date: meetingDate.toISOString(),
+        participants: [],
         transcriptSegments: segments.length,
         ...recap,
       });

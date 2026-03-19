@@ -42,7 +42,7 @@ function MeetingCard({ meeting }: { meeting: MeetingSummary }) {
         </span>
       </div>
 
-      {meeting.participants.length > 0 && (
+      {(meeting.participants?.length > 0) && (
         <div className="flex flex-wrap gap-1 px-4 pb-2">
           {meeting.participants.map((p, i) => (
             <span

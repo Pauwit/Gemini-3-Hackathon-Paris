@@ -59,6 +59,8 @@ export default function VisioPanel() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const transcriptRef = useRef<SummarySegment[]>([]);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const speechBufferRef = useRef<string[]>([]);
+  const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -90,7 +92,7 @@ export default function VisioPanel() {
     setBubbles(prev => [newBubble, ...prev]);
   };
 
-  // Web Speech API — instant visual feedback on mic input (user only)
+  // Web Speech API — instant visual feedback + transcript/insight source
   const initSpeech = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -107,6 +109,47 @@ export default function VisioPanel() {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
         else interimTranscript += event.results[i][0].transcript;
       }
+
+      if (finalTranscript.trim()) {
+        // Accumulate final speech into a buffer
+        speechBufferRef.current.push(finalTranscript.trim());
+
+        // Check for keywords → trigger copilot insight immediately
+        const lower = finalTranscript.toLowerCase();
+        const keywords = [
+          'projet', 'contrat', 'budget', 'client', 'document',
+          'stratégie', 'deadline', 'prix', 'offre', 'deal',
+          'négociation', 'réunion', 'facture',
+          'project', 'contract', 'roadmap', 'email', 'strategy',
+          'invoice', 'proposal', 'meeting', 'negotiation',
+        ];
+        if (keywords.some(k => lower.includes(k))) {
+          processContext(finalTranscript.trim());
+        }
+
+        // Flush buffer as a transcript segment every ~15s or 5 sentences
+        if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
+        if (speechBufferRef.current.length >= 5) {
+          const text = speechBufferRef.current.join(' ');
+          speechBufferRef.current = [];
+          setTranscript(prev => [...prev, {
+            timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            text,
+          }]);
+        } else {
+          speechTimerRef.current = setTimeout(() => {
+            if (speechBufferRef.current.length > 0) {
+              const text = speechBufferRef.current.join(' ');
+              speechBufferRef.current = [];
+              setTranscript(prev => [...prev, {
+                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                text,
+              }]);
+            }
+          }, 15000);
+        }
+      }
+
       setLiveSpeech(finalTranscript || interimTranscript);
     };
 
@@ -215,6 +258,8 @@ export default function VisioPanel() {
       setTranscript([]);
       setRecap(null);
       setShowRecap(false);
+      speechBufferRef.current = [];
+      if (speechTimerRef.current) { clearTimeout(speechTimerRef.current); speechTimerRef.current = null; }
 
       const res = await api.createMeet();
       if (res.success && res.data.meetLink) {
@@ -274,7 +319,20 @@ export default function VisioPanel() {
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
     if (wsRef.current) wsRef.current.close();
-    if (audioCtxRef.current) audioCtxRef.current.close();
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+    if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
+    // Flush any remaining buffered speech
+    if (speechBufferRef.current.length > 0) {
+      const text = speechBufferRef.current.join(' ');
+      speechBufferRef.current = [];
+      setTranscript(prev => [...prev, {
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        text,
+      }]);
+    }
     setIsListening(false);
     setAudioStream(null);
     setLiveSpeech('');
