@@ -1,13 +1,14 @@
 # DealBoard — AI Workspace Copilot
 
-> Built in 6 hours at the **Gemini 3 Hackathon Paris 🇫🇷**
+> Built in 6 hours at the **Gemini 3 Hackathon Paris**
 
 DealBoard is a real-time AI copilot that connects to your Google Workspace. It briefs you before meetings, listens during calls to surface the right context instantly, and generates a full recap when it's over.
 
 ---
 
 <!-- SCREENSHOT: Full dashboard overview -->
-![Dashboard Overview](./docs/screenshots/dashboard.png)
+<img width="1918" height="857" alt="image" src="https://github.com/user-attachments/assets/b23cee6f-0e3a-47a3-ba39-85b7ebf3b668" />
+
 
 ---
 
@@ -26,7 +27,8 @@ Your live briefing before every call. DealBoard scans your Gmail, Drive, and Cal
 | **Meeting Summaries** | Recaps of past meetings, always at hand |
 
 <!-- SCREENSHOT: Dashboard bento grid with all 5 panels visible -->
-![Dashboard Panels](./docs/screenshots/dashboard-panels.png)
+<img width="1638" height="788" alt="image" src="https://github.com/user-attachments/assets/9e43a984-4258-4dee-8574-9830761060ab" />
+
 
 ---
 
@@ -39,7 +41,7 @@ Chat directly with an AI that has full access to your Gmail, Drive, and Calendar
 > *"What's on my calendar this week?"*
 
 <!-- SCREENSHOT: Chat panel with a sample conversation -->
-![AI Chat](./docs/screenshots/chat.png)
+<img width="1627" height="342" alt="image" src="https://github.com/user-attachments/assets/08267b62-f11e-4017-9469-be8d3fe38a68" />
 
 ---
 
@@ -54,10 +56,7 @@ Start a Google Meet directly from DealBoard. During the call, the AI listens in 
 - Live summaries generated every 15 seconds in the Transcript tab
 
 <!-- SCREENSHOT: Active meeting view with video mirror + Co-Pilot sidebar showing insight cards -->
-![Meeting Co-Pilot](./docs/screenshots/meeting-copilot.png)
-
-<!-- SCREENSHOT: Close-up of the Co-Pilot sidebar with insight cards -->
-![Insight Cards](./docs/screenshots/insight-cards.png)
+<img width="1388" height="622" alt="image" src="https://github.com/user-attachments/assets/9731da21-a5ef-4bf7-9af3-4fc8d0aa3e2b" />
 
 ---
 
@@ -72,7 +71,8 @@ When you end the call, DealBoard automatically generates a structured recap powe
 - **Next Steps** — follow-up plan
 
 <!-- SCREENSHOT: Meeting recap page with summary, decisions, and action items -->
-![Meeting Recap](./docs/screenshots/recap.png)
+<img width="762" height="640" alt="image" src="https://github.com/user-attachments/assets/8a979ecb-4471-439b-9304-22fb36051bec" />
+
 
 ---
 
